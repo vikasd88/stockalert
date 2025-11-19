@@ -1,0 +1,18 @@
+{
+  "/api": {
+    "target": "https://stockalert-ig.gemsbok-mamba.ts.net",
+    "secure": true,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/api": ""
+    }
+  },
+  "/ws": {
+    "target": "wss://stockalert-ig.gemsbok-mamba.ts.net",
+    "ws": true,
+    "secure": true,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  }
+}

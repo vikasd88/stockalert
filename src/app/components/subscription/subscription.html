@@ -1,0 +1,166 @@
+<div class="subscription-container">
+    <!-- Header -->
+    <div class="subscription-header">
+      <div class="container">
+        <h1>Choose Your Plan</h1>
+        <p class="subtitle">Select the perfect plan for your trading needs</p>
+      </div>
+    </div>
+  
+    <!-- Plans Section -->
+    <div class="plans-section">
+      <div class="container">
+        <div class="plans-grid">
+          <div
+            *ngFor="let plan of plans"
+            class="plan-card"
+            [class.selected]="selectedPlan === plan.id"
+            [class.popular]="plan.popular"
+            (click)="selectPlan(plan.id)"
+          >
+            <!-- Popular Badge -->
+            <div *ngIf="plan.popular" class="popular-badge">
+              <i class="bi bi-star-fill"></i> Most Popular
+            </div>
+  
+            <!-- Plan Header -->
+            <div class="plan-header">
+              <h2>{{ plan.name }}</h2>
+              <div class="price">
+                <span class="amount">{{ plan.price }}</span>
+                <span class="period">{{ plan.period }}</span>
+              </div>
+              <p class="description">{{ plan.description }}</p>
+            </div>
+  
+            <!-- Features List -->
+            <div class="features-section">
+              <h3>Included Features</h3>
+              <ul class="features-list">
+                <li *ngFor="let feature of plan.features">
+                  <i class="bi bi-check-circle-fill"></i>
+                  <span>{{ feature }}</span>
+                </li>
+              </ul>
+            </div>
+  
+            <!-- Limitations -->
+            <div *ngIf="plan.limitations.length > 0" class="limitations-section">
+              <h3>Not Included</h3>
+              <ul class="limitations-list">
+                <li *ngFor="let limitation of plan.limitations">
+                  <i class="bi bi-x-circle"></i>
+                  <span>{{ limitation }}</span>
+                </li>
+              </ul>
+            </div>
+  
+            <!-- Selection Indicator -->
+            <div class="selection-indicator" *ngIf="selectedPlan === plan.id">
+              <i class="bi bi-check-lg"></i> Selected
+            </div>
+          </div>
+        </div>
+  
+        <!-- Action Buttons -->
+        <div class="action-section">
+          <button
+            class="btn btn-primary btn-lg"
+            (click)="confirmSelection()"
+            [disabled]="!selectedPlan || loading"
+          >
+            <span *ngIf="!loading">
+              Continue with {{ selectedPlan ? getPlanById(selectedPlan)?.name : 'Selected Plan' }}
+            </span>
+            <span *ngIf="loading">
+              <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+              Processing...
+            </span>
+          </button>
+          <button
+            class="btn btn-outline-secondary btn-lg"
+            (click)="skipForNow()"
+            [disabled]="loading"
+          >
+            Skip for now
+          </button>
+        </div>
+  
+        <!-- Info Message -->
+        <div class="info-message">
+          <i class="bi bi-info-circle"></i>
+          <p>
+            You can change your plan anytime. Free users will see ads and have limited access to premium features.
+          </p>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Comparison Section -->
+    <div class="comparison-section">
+      <div class="container">
+        <h2>Detailed Comparison</h2>
+        <div class="table-responsive">
+          <table class="comparison-table">
+            <thead>
+              <tr>
+                <th>Feature</th>
+                <th>Free</th>
+                <th>Premium</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Daily Alerts</td>
+                <td><span class="badge bg-warning">Limited (5)</span></td>
+                <td><span class="badge bg-success">Unlimited</span></td>
+              </tr>
+              <tr>
+                <td>Real-time Data</td>
+                <td><i class="bi bi-x-lg text-danger"></i></td>
+                <td><i class="bi bi-check-lg text-success"></i></td>
+              </tr>
+              <tr>
+                <td>Advanced Analytics</td>
+                <td><i class="bi bi-x-lg text-danger"></i></td>
+                <td><i class="bi bi-check-lg text-success"></i></td>
+              </tr>
+              <tr>
+                <td>Historical Data</td>
+                <td><span class="badge bg-secondary">30 days</span></td>
+                <td><span class="badge bg-success">Unlimited</span></td>
+              </tr>
+              <tr>
+                <td>API Access</td>
+                <td><i class="bi bi-x-lg text-danger"></i></td>
+                <td><i class="bi bi-check-lg text-success"></i></td>
+              </tr>
+              <tr>
+                <td>Custom Alerts</td>
+                <td><i class="bi bi-x-lg text-danger"></i></td>
+                <td><i class="bi bi-check-lg text-success"></i></td>
+              </tr>
+              <tr>
+                <td>Portfolio Tracking</td>
+                <td><i class="bi bi-x-lg text-danger"></i></td>
+                <td><i class="bi bi-check-lg text-success"></i></td>
+              </tr>
+              <tr>
+                <td>Ads</td>
+                <td><span class="badge bg-danger">Yes</span></td>
+                <td><span class="badge bg-success">No</span></td>
+              </tr>
+              <tr>
+                <td>Support</td>
+                <td><span class="badge bg-secondary">Community</span></td>
+                <td><span class="badge bg-success">Priority</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  
+  

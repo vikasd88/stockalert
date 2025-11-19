@@ -1,0 +1,411 @@
+<div class="stock-alerts-container">
+    <!-- Market Ticker -->
+    <app-market-ticker [tickerData]="tickerData"></app-market-ticker>
+
+    <div class="header">
+        <h2>Stock Alerts</h2>
+        <div class="header-actions">
+            <div class="column-selector-container">
+                <button
+                        class="column-selector-button"
+                        (click)="showColumnSelector = !showColumnSelector"
+                        title="Configure Columns">
+                    <i class="fas fa-columns"></i> Columns
+                </button>
+
+                <div class="column-selector-dropdown" *ngIf="showColumnSelector" (click)="$event.stopPropagation()">
+                    <div class="column-selector-header">
+                        <h4>Configure Columns</h4>
+                        <button class="reset-button" (click)="resetToDefaultColumns()">Reset to Default</button>
+                    </div>
+                    <div class="column-list">
+                        <div class="column-item" *ngFor="let col of columnSettings">
+                            <label class="checkbox-container">
+                                <input
+                                        type="checkbox"
+                                        [checked]="col.visible"
+                                        (change)="toggleColumnVisibility(col.key)"
+                                >
+                                <span class="checkmark"></span>
+                                {{ col.label }}
+                            </label>
+                            <div class="column-actions">
+                                <button
+                                        class="move-button"
+                                        [disabled]="col.order === 0"
+                                        (click)="moveColumn(col.key, 'up')"
+                                        title="Move up">
+                                    <i class="fas fa-arrow-up"></i>
+                                </button>
+                                <button
+                                        class="move-button"
+                                        [disabled]="col.order === columnSettings.length - 1"
+                                        (click)="moveColumn(col.key, 'down')"
+                                        title="Move down">
+                                    <i class="fas fa-arrow-down"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <button
+                        class="tab"
+                        [class.active]="activeTab === 'realtime'"
+                        (click)="setActiveTab('realtime')">
+                    Real-time
+                </button>
+                <button
+                        *ngIf="!isPaidUser"
+                        class="tab"
+                        [class.active]="activeTab === 'free'"
+                        (click)="setActiveTab('free')">
+                    Free Alerts
+                </button>
+                <button
+                        *ngIf="isPaidUser"
+                        class="tab premium"
+                        [class.active]="activeTab === 'premium'"
+                        (click)="setActiveTab('premium')">
+                    <i class="fas fa-crown"></i> Premium Alerts
+                </button>
+            </div>
+            <button
+                    class="logout-button"
+                    (click)="onLogout()"
+                    title="Logout"
+                    aria-label="Logout">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="error-message" *ngIf="error">
+        {{ error }}
+    </div>
+
+    <!-- Real-time Alerts Table -->
+    <div class="alerts-section" *ngIf="activeTab === 'realtime'">
+        <div class="table-responsive" *ngIf="realTimeAlerts.length > 0; else noRealtimeAlerts">
+            <table class="alerts-table">
+                <colgroup>
+                    <ng-container *ngFor="let col of visibleColumns">
+                        <col *ngIf="col.key !== 'actions'" [class]="col.key + '-col'" [style.width]="col.width">
+                    </ng-container>
+                    <col class="actions-col">
+                </colgroup>
+                <thead>
+                <tr>
+                    <ng-container *ngFor="let col of visibleColumns">
+                        <th *ngIf="col.key !== 'actions'" [class]="col.key + '-header'" [style.width]="col.width">
+                            {{ col.label }}
+                        </th>
+                    </ng-container>
+                    <th class="actions-header">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr *ngFor="let alert of realTimeAlerts" [class.premium-row]="isPaidUser" [class.blinking-row]="alert['isBlinking']">
+                    <ng-container *ngFor="let col of visibleColumns">
+                        <td *ngIf="col.key !== 'actions'" [class]="col.key + '-cell'" [class.positive]="(col.key === 'change' || col.key === 'percentChange') && (col.key === 'percentChange' ? (alert.percentChange || 0) >= 0 : (alert['change'] || 0) >= 0)" [class.negative]="(col.key === 'change' || col.key === 'percentChange') && (col.key === 'percentChange' ? (alert.percentChange || 0) < 0 : (alert['change'] || 0) < 0)" [attr.data-column]="col.key">
+                            <ng-container [ngSwitch]="col.key">
+                                <!-- Symbol -->
+                                <span *ngSwitchCase="'symbol'" class="symbol">
+                    {{ alert.symbol }}
+                  </span>
+
+                                <!-- Trade Type -->
+                                <span *ngSwitchCase="'tradeType'" class="trade-type" [class]="(alert.tradeType || '').toLowerCase()">
+                    {{ alert.tradeType || 'N/A' }}
+                  </span>
+
+                                <!-- LTP (Last Traded Price) -->
+                                <span *ngSwitchCase="'ltp'" class="price">
+                    {{ alert.ltp | number:'1.2-2' }}
+                  </span>
+
+                                <!-- Percent Change -->
+                                <span *ngSwitchCase="'percentChange'" [class]="(alert.percentChange || 0) >= 0 ? 'positive' : 'negative'">
+                    {{ (alert.percentChange || 0) | number:'1.2-2' }}%
+                  </span>
+
+                                <!-- Volume in Window -->
+                                <span *ngSwitchCase="'volumeInWindow'" class="volume">
+                    {{ alert.volumeInWindow | number:'1.0-0' }}
+                  </span>
+
+                                <!-- Threshold Volume -->
+                                <span *ngSwitchCase="'thresholdVolume'" class="threshold">
+                    {{ alert.thresholdVolume | number:'1.0-0' }}
+                  </span>
+
+                                <!-- Exchange Time -->
+                                <span *ngSwitchCase="'exchangeTime'" class="time">
+                    {{ alert.exchangeTime | date:'HH:mm:ss' }}
+                  </span>
+
+                                <!-- Open Price -->
+                                <span *ngSwitchCase="'openPrice'" class="price">
+                    {{ alert.openPrice | number:'1.2-2' }}
+                  </span>
+
+                                <!-- High Price -->
+                                <span *ngSwitchCase="'highPrice'" class="price">
+                    {{ alert.highPrice | number:'1.2-2' }}
+                  </span>
+
+                                <!-- Low Price -->
+                                <span *ngSwitchCase="'lowPrice'" class="price">
+                    {{ alert.lowPrice | number:'1.2-2' }}
+                  </span>
+
+                                <!-- Close Price -->
+                                <span *ngSwitchCase="'closePrice'" class="price">
+                    {{ alert.closePrice | number:'1.2-2' }}
+                  </span>
+
+                                <!-- Volume Percentile -->
+                                <span *ngSwitchCase="'volumePercentile'" class="percentile">
+                    {{ (alert.volumePercentile || 0) | number:'1.0-2' }}%
+                  </span>
+
+                                <!-- Delay Seconds -->
+                                <span *ngSwitchCase="'delaySeconds'" class="delay">
+                    {{ alert.delaySeconds || 0 }}s
+                  </span>
+
+                                <!-- Default case for any other columns -->
+                                <span *ngSwitchDefault>
+                    {{ alert[col.key] }}
+                  </span>
+                            </ng-container>
+                        </td>
+                    </ng-container>
+
+                    <!-- Actions Column -->
+                    <td class="actions-cell">
+                        <div class="table-actions">
+                           
+                            <a *ngIf="alert.liveOptionChartUrl" [href]="alert.liveOptionChartUrl" target="_blank" class="action-button" title="Live Options Chart">
+                                <i class="fas fa-chart-line"></i> Options
+                            </a>
+                            <a *ngIf="alert.futChartUrl" [href]="alert.futChartUrl" target="_blank" class="action-button" title="Futures Chart">
+                                <i class="fas fa-chart-line"></i> Futures
+                            </a>
+                            <a *ngIf="alert.equityChartUrl" [href]="alert.equityChartUrl" target="_blank" class="action-button" title="Equity Chart">
+                                <i class="fas fa-chart-line"></i> Equity
+                            </a>
+                            <a *ngIf="alert.newsUrl" [href]="alert.newsUrl" target="_blank" class="action-button" title="View News">
+                                <i class="far fa-newspaper"></i> News
+                            </a>
+                            <a *ngIf="alert.oiUrl" [href]="alert.oiUrl" target="_blank" class="action-button" title="Open Interest">
+                                <i class="fas fa-chart-bar"></i> OI
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <ng-template #noRealtimeAlerts>
+            <div class="no-alerts">
+                <p>Waiting for real-time alerts...</p>
+                <p class="hint">New alerts will appear here automatically</p>
+            </div>
+        </ng-template>
+    </div>
+
+    <!-- Free Alerts Table -->
+    <div class="alerts-section" *ngIf="activeTab === 'free'" (scroll)="onScroll()">
+        <div *ngIf="loading.free && !freeAlerts.length" class="loading">
+            <div class="loading-indicator">
+                <div class="spinner"></div>
+                <span>Loading free alerts...</span>
+            </div>
+        </div>
+
+        <div *ngIf="error" class="error-message">
+            {{ error }}
+            <button (click)="loadFreeAlerts()" class="retry-button">Retry</button>
+        </div>
+
+        <div *ngIf="!loading.free && !error" class="alerts-content">
+            <div class="table-responsive" *ngIf="freeAlerts.length > 0; else noFreeAlerts">
+                <table class="alerts-table">
+                    <colgroup>
+                        <ng-container *ngFor="let col of visibleColumns">
+                            <col *ngIf="col.key !== 'actions'" [class]="col.key + '-col'" [style.width]="col.width">
+                        </ng-container>
+                        <col class="actions-col">
+                    </colgroup>
+                    <thead>
+                    <tr>
+                        <ng-container *ngFor="let col of visibleColumns">
+                            <th *ngIf="col.key !== 'actions'" [class]="col.key + '-header'" [style.width]="col.width">
+                                {{ col.label }}
+                            </th>
+                        </ng-container>
+                        <th class="actions-header">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr *ngFor="let alert of freeAlerts">
+                        <ng-container *ngFor="let col of visibleColumns">
+                            <td
+                                    *ngIf="col.key !== 'actions'"
+                                    [class]="col.key + '-cell'"
+                                    [class.positive]="(col.key === 'change' || col.key === 'percentChange') && (col.key === 'percentChange' ? (alert.percentChange || 0) >= 0 : (alert['change'] || 0) >= 0)"
+                                    [class.negative]="(col.key === 'change' || col.key === 'percentChange') && (col.key === 'percentChange' ? (alert.percentChange || 0) < 0 : (alert['change'] || 0) < 0)"
+                            >
+                                <ng-container [ngSwitch]="col.key">
+                                    <span *ngSwitchCase="'exchangeTime'">{{ alert[col.key] | date:'mediumTime' }}</span>
+                                    <span *ngSwitchCase="'percentChange'" [class.positive]="(alert.percentChange || 0) >= 0" [class.negative]="(alert.percentChange || 0) < 0">
+                      {{ alert.percentChange | number:'1.2-2' }}%
+                    </span>
+                                    <span *ngSwitchDefault>{{ alert[col.key] }}</span>
+                                </ng-container>
+                            </td>
+                        </ng-container>
+                        <td class="actions-cell">
+                            <div class="table-actions">
+                               
+                                <a *ngIf="alert.liveOptionChartUrl" [href]="alert.liveOptionChartUrl" target="_blank" class="action-button" title="Live Options Chart">
+                                    <i class="fas fa-chart-line"></i> Options
+                                </a>
+                                <a *ngIf="alert.futChartUrl" [href]="alert.futChartUrl" target="_blank" class="action-button" title="Futures Chart">
+                                    <i class="fas fa-chart-line"></i> Futures
+                                </a>
+                                <a *ngIf="alert.equityChartUrl" [href]="alert.equityChartUrl" target="_blank" class="action-button" title="Equity Chart">
+                                    <i class="fas fa-chart-line"></i> Equity
+                                </a>
+                                <a *ngIf="alert.newsUrl" [href]="alert.newsUrl" target="_blank" class="action-button" title="View News">
+                                    <i class="far fa-newspaper"></i> News
+                                </a>
+                                <a *ngIf="alert.oiUrl" [href]="alert.oiUrl" target="_blank" class="action-button" title="Open Interest">
+                                    <i class="fas fa-chart-bar"></i> OI
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <!-- Loading indicator for infinite scroll -->
+                <div *ngIf="loading.free && freeAlerts.length > 0" class="loading-indicator">
+                    <div class="spinner"></div>
+                    <span>Loading more alerts...</span>
+                </div>
+
+                <!-- No more data indicator -->
+                <div *ngIf="!hasMore && freeAlerts.length > 0" class="no-more-data">
+                    No more alerts to load
+                </div>
+            </div>
+
+            <ng-template #noFreeAlerts>
+                <div class="empty-state" *ngIf="!loading.free">
+                    <p>No free alerts available at the moment</p>
+                    <p class="hint">Check back later for new alerts</p>
+                </div>
+            </ng-template>
+        </div>
+    </div>
+
+    <!-- Premium Alerts Table -->
+    <div class="alerts-section" *ngIf="activeTab === 'premium'" (scroll)="onScroll()">
+        <div *ngIf="loading.paid && (!paidAlerts || paidAlerts.length === 0)" class="loading">
+            <div class="loading-indicator">
+                <div class="spinner"></div>
+                <span>Loading premium alerts...</span>
+            </div>
+        </div>
+
+        <div *ngIf="error" class="error-message">
+            {{ error }}
+            <button (click)="loadPaidAlerts()" class="retry-button">Retry</button>
+        </div>
+
+        <div *ngIf="isPaidUser && !loading.paid" class="alerts-content">
+            <div class="table-responsive" *ngIf="paidAlerts && paidAlerts.length > 0; else noPremiumAlerts">
+                <table class="alerts-table premium-table">
+                    <colgroup>
+                        <ng-container *ngFor="let col of visibleColumns">
+                            <col *ngIf="col.key !== 'actions'" [class]="col.key + '-col'">
+                        </ng-container>
+                        <col class="actions-col">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <ng-container *ngFor="let col of visibleColumns">
+                                <th *ngIf="col.key !== 'actions'" [class]="col.key + '-header'">
+                                    {{ col.label }}
+                                </th>
+                            </ng-container>
+                            <th class="actions-header">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let alert of paidAlerts" [class.highlight-row]="isNewAlert(alert)">
+                            <ng-container *ngFor="let col of visibleColumns">
+                                <td
+                                    *ngIf="col.key !== 'actions'"
+                                    [class]="col.key + '-cell'"
+                                    [class.positive]="(col.key === 'change' || col.key === 'percentChange') && (col.key === 'percentChange' ? (alert.percentChange || 0) >= 0 : (alert['change'] || 0) >= 0)"
+                                    [class.negative]="(col.key === 'change' || col.key === 'percentChange') && (col.key === 'percentChange' ? (alert.percentChange || 0) < 0 : (alert['change'] || 0) < 0)"
+                                >
+                                    <ng-container [ngSwitch]="col.key">
+                                        <span *ngSwitchCase="'exchangeTime'">{{ alert[col.key] | date:'mediumTime' }}</span>
+                                        <span *ngSwitchCase="'percentChange'" [class.positive]="(alert.percentChange || 0) >= 0" [class.negative]="(alert.percentChange || 0) < 0">
+                                            {{ alert.percentChange | number:'1.2-2' }}%
+                                        </span>
+                                        <span *ngSwitchDefault>{{ alert[col.key] }}</span>
+                                    </ng-container>
+                                </td>
+                            </ng-container>
+                            <td class="actions-cell">
+                                <div class="table-actions">
+                                   
+                                    <a *ngIf="alert.liveOptionChartUrl" [href]="alert.liveOptionChartUrl" target="_blank" class="action-button" title="Live Options Chart">
+                                        <i class="fas fa-chart-line"></i> Options
+                                    </a>
+                                    <a *ngIf="alert.futChartUrl" [href]="alert.futChartUrl" target="_blank" class="action-button" title="Futures Chart">
+                                        <i class="fas fa-chart-line"></i> Futures
+                                    </a>
+                                    <a *ngIf="alert.equityChartUrl" [href]="alert.equityChartUrl" target="_blank" class="action-button" title="Equity Chart">
+                                        <i class="fas fa-chart-line"></i> Equity
+                                    </a>
+                                    <a *ngIf="alert.newsUrl" [href]="alert.newsUrl" target="_blank" class="action-button" title="View News">
+                                        <i class="far fa-newspaper"></i> News
+                                    </a>
+                                    <a *ngIf="alert.oiUrl" [href]="alert.oiUrl" target="_blank" class="action-button" title="Open Interest">
+                                        <i class="fas fa-chart-bar"></i> OI
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Loading indicator for infinite scroll -->
+                <div *ngIf="loading.paid && paidAlerts.length > 0" class="loading-indicator">
+                    <div class="spinner"></div>
+                    <span>Loading more alerts...</span>
+                </div>
+
+                <!-- No more data indicator -->
+                <div *ngIf="!hasMore && paidAlerts.length > 0" class="no-more-data">
+                    No more alerts to load
+                </div>
+            </div>
+
+            <ng-template #noPremiumAlerts>
+                <div class="empty-state" *ngIf="!loading.paid">
+                    <p>No premium alerts available at the moment</p>
+                    <p class="hint">Check back later for new alerts</p>
+                </div>
+            </ng-template>
+        </div>
+    </div>
+</div>

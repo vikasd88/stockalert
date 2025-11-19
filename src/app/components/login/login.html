@@ -1,0 +1,75 @@
+<div class="login-container">
+  <div class="login-wrapper">
+    <!-- Logo Section -->
+    <div class="logo-section">
+      <div class="logo">
+        <i class="bi bi-lightning-charge-fill"></i>
+      </div>
+      <h1>Stock Alerts</h1>
+      <p class="tagline">Real-time market insights at your fingertips</p>
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show" role="alert">
+      <i class="bi bi-exclamation-circle me-2"></i>
+      {{ errorMessage }}
+      <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+    </div>
+
+    <!-- Google-Only Login Section -->
+    <div class="form-section">
+      <h2>Sign In</h2>
+      <p class="form-subtitle">Use your Google account to continue</p>
+
+      <!-- Google Login Button -->
+      <button
+        type="button"
+        class="btn btn-primary btn-google btn-login"
+        (click)="onLogin()"
+        [disabled]="loading"
+      >
+        <span *ngIf="!loading">
+          <i class="bi bi-google me-2"></i>
+          Sign in with Google
+        </span>
+        <span *ngIf="loading">
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          Signing in...
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Right Side - Features -->
+  <div class="features-section">
+    <div class="features-content">
+      <h3>Why choose Stock Alerts?</h3>
+      <ul class="features-list">
+        <li>
+          <i class="bi bi-lightning-charge-fill"></i>
+          <span>Real-time market alerts</span>
+        </li>
+        <li>
+          <i class="bi bi-graph-up"></i>
+          <span>Advanced analytics</span>
+        </li>
+        <li>
+          <i class="bi bi-bell-fill"></i>
+          <span>Instant notifications</span>
+        </li>
+        <li>
+          <i class="bi bi-shield-check"></i>
+          <span>Secure & reliable</span>
+        </li>
+        <li>
+          <i class="bi bi-mobile"></i>
+          <span>Mobile friendly</span>
+        </li>
+        <li>
+          <i class="bi bi-clock-history"></i>
+          <span>24/7 monitoring</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
