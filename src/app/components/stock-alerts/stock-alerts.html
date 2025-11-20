@@ -53,12 +53,6 @@
 
             <div class="tabs">
                 <button
-                        class="tab"
-                        [class.active]="activeTab === 'realtime'"
-                        (click)="setActiveTab('realtime')">
-                    Real-time
-                </button>
-                <button
                         *ngIf="!isPaidUser"
                         class="tab"
                         [class.active]="activeTab === 'free'"
@@ -223,7 +217,7 @@
     </div>
 
         <!-- Free Alerts Table -->
-        <div class="alerts-section" *ngIf="activeTab === 'free'" (scroll)="onScroll()">
+        <div class="alerts-section" *ngIf="activeTab === 'free'">
             <div *ngIf="loading.free && !freeAlerts.length" class="loading">
                 <div class="loading-indicator">
                     <div class="spinner"></div>
@@ -319,7 +313,7 @@
         </div>
 
         <!-- Premium Alerts Table -->
-        <div class="alerts-section" *ngIf="activeTab === 'premium'" (scroll)="onScroll()">
+        <div class="alerts-section" *ngIf="activeTab === 'premium'">
             <div *ngIf="loading.paid && (!paidAlerts || paidAlerts.length === 0)" class="loading">
                 <div class="loading-indicator">
                     <div class="spinner"></div>
@@ -417,12 +411,15 @@
       
       <!-- Ad Container -->
       <div class="ad-container">
-        <!-- Google AdSense Ad Unit -->
-        <div class="ad-unit">
-          <!-- AdSense Ad Code will go here -->
-          <div class="ad-placeholder">Advertisement</div>
+        <div id="medrectangle_media_net" class="ad-unit">
+          <!-- Media.net Ad -->
+          <script type="text/javascript">
+            window._mNHandle = window._mNHandle || {};
+            window._mNHandle.queue = window._mNHandle.queue || [];
+            medianet_versionId = "YOUR_MEDIANET_VERSION_ID";
+          </script>
+          <script src="//contextual.media.net/dmedianet.js?cid=YOUR_CUSTOMER_ID" async="async"></script>
+          <div id="M602612ScriptRootC"></div>
         </div>
       </div>
-    </div>
   </div>
-</div>

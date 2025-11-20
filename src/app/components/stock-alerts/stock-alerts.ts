@@ -177,9 +177,6 @@ export class StockAlerts implements OnInit, OnDestroy {
     // Initialize columns
     this.initializeColumns();
     
-    // Initialize with real-time data
-    this.setupWebSocket();
-    
     // Get initial auth state
     const currentUser = this.authService.getCurrentUser();
     this.isPaidUser = currentUser?.isSubscribed ?? false;
@@ -189,7 +186,10 @@ export class StockAlerts implements OnInit, OnDestroy {
     
     // Load initial data based on user subscription
     if (this.isPaidUser) {
-      this.loadPaidAlerts();
+      this.loadPaidAlerts().then(() => {
+        // Setup WebSocket after initial data is loaded
+        this.setupWebSocket();
+      });
     } else {
       this.loadFreeAlerts();
     }
@@ -210,62 +210,11 @@ export class StockAlerts implements OnInit, OnDestroy {
     );
   }
   
-  private scrollDebounceTimer: any = null;
-  private lastLoadPosition = 0;
-  private readonly SCROLL_THRESHOLD = 1000; // pixels from bottom
-  private readonly SCROLL_DEBOUNCE = 500; // Increased debounce time
-  private readonly MIN_LOAD_DISTANCE = 800; // Minimum pixels to scroll before allowing next load
+  // Scroll related variables removed - infinite scroll disabled
 
-  @HostListener('window:scroll')
-  onScroll(): void {
-    // Only handle scroll events for premium tab
-    if (this.activeTab !== 'premium' || !this.isPaidUser || this.isLoading || !this.hasMore) {
-      return;
-    }
-
-    const windowHeight = window.innerHeight;
-    const documentHeight = document.documentElement.scrollHeight;
-    const scrollPosition = window.scrollY;
-    
-    // Calculate distance from bottom
-    const distanceFromBottom = documentHeight - (windowHeight + scrollPosition);
-    
-    // Calculate how far we've scrolled since last load
-    const scrollDistance = Math.abs(scrollPosition - this.lastLoadPosition);
-    
-    // Only check for loading more if we've scrolled a minimum distance
-    if (scrollDistance < this.MIN_LOAD_DISTANCE && this.lastLoadPosition > 0) {
-      return;
-    }
-
-    // Use debounce with a longer delay
-    if (this.scrollDebounceTimer) {
-      clearTimeout(this.scrollDebounceTimer);
-    }
-
-    this.scrollDebounceTimer = setTimeout(() => {
-      // Recalculate in case scroll position changed during the debounce
-      const currentScrollPosition = window.scrollY;
-      const currentDistanceFromBottom = documentHeight - (windowHeight + currentScrollPosition);
-      
-      // Only load more if we're near the bottom and not already loading
-      if (currentDistanceFromBottom < this.SCROLL_THRESHOLD) {
-        console.log('Near bottom, loading more alerts...');
-        this.lastLoadPosition = currentScrollPosition;
-        this.loadPaidAlerts(true);
-      }
-      
-      this.scrollDebounceTimer = null;
-    }, this.SCROLL_DEBOUNCE);
-  }
+  // Scroll handler removed - infinite scroll disabled
   
-  public loadMoreAlerts(): void {
-    if (this.activeTab === 'free') {
-      this.loadFreeAlerts(true);
-    } else if (this.activeTab === 'premium' && this.isPaidUser) {
-      this.loadPaidAlerts(true);
-    }
-  }
+  // Load more alerts method removed - infinite scroll disabled
 
   private convertToStockAlert(alert: Record<string, any> & Partial<StockAlert>): StockAlert {
     console.group('Converting alert data');
@@ -411,166 +360,173 @@ export class StockAlerts implements OnInit, OnDestroy {
       });
   }
 
-  loadPaidAlerts(loadMore: boolean = false): void {
-    console.log('loadPaidAlerts called, isPaidUser:', this.isPaidUser, 'loadMore:', loadMore);
-    
-    if (!this.isPaidUser) {
-      console.warn('User is not a paid user, cannot load paid alerts');
-      this.error = 'Premium access required to view these alerts';
-      return;
-    }
-    
-    if (this.isLoading) {
-      console.log('Already loading data, skipping...');
-      return;
-    }
-    
-    if (!loadMore) {
-      console.log('Initial load of paid alerts');
-      this.currentPage = 0;
-      this.hasMore = true;
-      this.paidAlerts = [];
-      // Scroll to top when loading first page
-      window.scrollTo(0, 0);
-    } else if (!this.hasMore) {
-      console.log('No more paid alerts to load');
-      return;
-    }
-
-    this.isLoading = true;
-    this.loading.paid = true;
-    this.error = null;
-
-    console.log('Loading paid alerts, page:', this.currentPage, 'size:', this.pageSize);
-
-    const subscription = this.stockAlertService.getPaidAlerts(this.currentPage, this.pageSize)
-      .pipe(
-        finalize(() => {
-          console.log('Paid alerts loading completed');
-          console.log('Current paidAlerts:', this.paidAlerts);
-          this.isLoading = false;
-          this.loading.paid = false;
-          this.cdr.detectChanges(); // Trigger change detection
-          console.log('After change detection - paidAlerts:', this.paidAlerts);
-        })
-      )
-      .subscribe({
-        next: (response: any) => { // Use 'any' temporarily to avoid type errors
-          console.group('Paid Alerts Response');
-          console.log('Raw response:', response);
-          
-          if (!response) {
-            console.error('Empty response received from paid alerts API');
-            this.error = 'Received empty response from server';
-            console.groupEnd();
-            return;
-          }
-
-          console.log('Response content type:', typeof response);
-          console.log('Response content:', response);
-          
-          try {
-            // Handle different response formats
-            let alertsArray: any[] = [];
-            
-            // Case 1: Response is an array
-            if (Array.isArray(response)) {
-              alertsArray = response;
-            } 
-            // Case 2: Response has a content property that's an array (Spring Data REST)
-            else if (response && Array.isArray(response.content)) {
-              alertsArray = response.content;
-            }
-            // Case 3: Response is a single object
-            else if (response && typeof response === 'object' && !Array.isArray(response)) {
-              alertsArray = [response];
-            }
-            
-            console.log('Alerts array to process:', alertsArray);
-            
-            if (alertsArray.length === 0) {
-              console.warn('No alerts found in the response');
-              this.error = 'No premium alerts available at the moment. Please check back later.';
-              this.paidAlerts = [];
-              return;
-            }
-            
-            // Process each alert
-            const alerts = alertsArray.map(alert => {
-              console.log('Processing alert:', alert);
-              const processedAlert = this.convertToStockAlert(alert);
-              console.log('Processed alert:', processedAlert);
-              return processedAlert;
-            });
-              
-            console.log(`Processed ${alerts.length} paid alerts`);
-            
-            // Update the alerts array
-            if (loadMore) {
-              console.log(`Appending ${alerts.length} alerts to existing ${this.paidAlerts.length} alerts`);
-              this.paidAlerts = [...this.paidAlerts, ...alerts];
-            } else {
-              console.log(`Setting ${alerts.length} alerts`);
-              this.paidAlerts = [...alerts]; // Create a new array to trigger change detection
-            }
-            
-            // Handle pagination
-            this.hasMore = response.last === false || 
-                         (response as any)?.hasNext || 
-                         (response as any)?.has_next || 
-                         (response.totalElements > this.paidAlerts.length);
-            
-            this.currentPage = (response as any)?.number !== undefined 
-              ? (response as any).number + 1 
-              : this.currentPage + 1;
-            
-            console.log(`Updated paidAlerts:`, this.paidAlerts);
-            console.log('hasMore:', this.hasMore, 'currentPage:', this.currentPage);
-            
-            if (this.paidAlerts.length === 0 && !loadMore) {
-              console.log('No paid alerts found');
-              this.error = 'No premium alerts available at the moment. Please check back later.';
-            }
-            
-            console.groupEnd();
-          } catch (error) {
-            console.error('Error processing paid alerts:', error);
-            this.error = 'Error processing alerts data. ' + (error instanceof Error ? error.message : 'Please try again.');
-            console.groupEnd();
-          }
-        },
-        error: (err: any) => {
-          console.group('Paid Alerts Error');
-          console.error('Error loading premium alerts:', err);
-          
-          if (err.status === 401 || err.status === 403) {
-            this.error = 'Authentication required. Please log in again.';
-            this.authService.logout();
-            this.router.navigate(['/login']);
-          } else if (err.status === 0) {
-            this.error = 'Unable to connect to the server. Please check your internet connection.';
-          } else if (err.status === 404) {
-            this.error = 'Premium alerts endpoint not found. Please contact support.';
-          } else {
-            this.error = err.error?.message || 'Failed to load premium alerts. Please try again later.';
-          }
-          
-          this.paidAlerts = [];
-          console.groupEnd();
-        }
-      });
+  loadPaidAlerts(loadMore: boolean = false): Promise<void> {
+    return new Promise((resolve, reject) => {
+      console.log('loadPaidAlerts called, isPaidUser:', this.isPaidUser, 'loadMore:', loadMore);
       
-    // Add subscription to cleanup list
-    this.subscriptions.add(subscription);
+      if (!this.isPaidUser) {
+        console.warn('User is not a paid user, cannot load paid alerts');
+        this.error = 'Premium access required to view these alerts';
+        this.loading.paid = false;
+        return resolve();
+      }
+      
+      if (this.isLoading) {
+        console.log('Already loading data, skipping...');
+        return resolve();
+      }
+      
+      if (!loadMore) {
+        console.log('Initial load of paid alerts');
+        this.currentPage = 0;
+        this.hasMore = true;
+        this.paidAlerts = [];
+        // Scroll to top when loading first page
+        window.scrollTo(0, 0);
+      } else if (!this.hasMore) {
+        console.log('No more paid alerts to load');
+        return resolve();
+      }
+
+      this.isLoading = true;
+      this.loading.paid = true;
+      this.error = null;
+
+      console.log('Loading paid alerts, page:', this.currentPage, 'size:', this.pageSize);
+
+      const subscription = this.stockAlertService.getPaidAlerts(this.currentPage, this.pageSize)
+        .pipe(
+          finalize(() => {
+            this.isLoading = false;
+            this.loading.paid = false;
+            this.cdr.detectChanges();
+          })
+        )
+        .subscribe({
+          next: (response: any) => {
+            console.group('Paid Alerts Response');
+            console.log('Raw response:', response);
+            
+            if (!response) {
+              console.error('Empty response received from paid alerts API');
+              this.error = 'Received empty response from server';
+              console.groupEnd();
+              return resolve();
+            }
+
+            try {
+              // Handle different response formats
+              let alertsArray: any[] = [];
+              
+              if (Array.isArray(response)) {
+                alertsArray = response;
+              } else if (response && Array.isArray(response.content)) {
+                alertsArray = response.content;
+              } else if (response && typeof response === 'object' && !Array.isArray(response)) {
+                alertsArray = [response];
+              }
+              
+              console.log('Alerts array to process:', alertsArray);
+              
+              if (alertsArray.length === 0) {
+                console.warn('No alerts found in the response');
+                this.error = 'No premium alerts available at the moment. Please check back later.';
+                this.paidAlerts = [];
+                return resolve();
+              }
+              
+              // Process each alert
+              const alerts = alertsArray.map(alert => this.convertToStockAlert(alert));
+              
+              // Update the alerts array
+              this.paidAlerts = loadMore 
+                ? [...this.paidAlerts, ...alerts] 
+                : [...alerts];
+              
+              // Handle pagination
+              this.hasMore = response.last === false || 
+                           (response as any)?.hasNext || 
+                           (response as any)?.has_next || 
+                           (response.totalElements > this.paidAlerts.length);
+              
+              this.currentPage = (response as any)?.number !== undefined 
+                ? (response as any).number + 1 
+                : this.currentPage + 1;
+              
+              console.log('Updated paidAlerts:', this.paidAlerts);
+              console.log('hasMore:', this.hasMore, 'currentPage:', this.currentPage);
+              
+              if (this.paidAlerts.length === 0 && !loadMore) {
+                console.log('No paid alerts found');
+                this.error = 'No premium alerts available at the moment. Please check back later.';
+              }
+              
+              console.groupEnd();
+              resolve();
+            } catch (error) {
+              console.error('Error processing paid alerts:', error);
+              this.error = 'Error processing alerts data. ' + (error instanceof Error ? error.message : 'Please try again.');
+              console.groupEnd();
+              reject(error);
+            }
+          },
+          error: (err: any) => {
+            console.group('Paid Alerts Error');
+            console.error('Error loading premium alerts:', err);
+            
+            if (err.status === 401 || err.status === 403) {
+              this.error = 'Authentication required. Please log in again.';
+              this.authService.logout();
+              this.router.navigate(['/login']);
+            } else if (err.status === 0) {
+              this.error = 'Unable to connect to the server. Please check your internet connection.';
+            } else if (err.status === 404) {
+              this.error = 'Premium alerts endpoint not found. Please contact support.';
+            } else {
+              this.error = err.error?.message || 'Failed to load premium alerts. Please try again later.';
+            }
+            
+            this.paidAlerts = [];
+            console.groupEnd();
+            reject(err);
+          }
+        });
+        
+      // Add subscription to cleanup list
+      this.subscriptions.add(subscription);
+    });
   }
 
   setupWebSocket(): void {
+    // Only connect to WebSocket for premium users
+    if (!this.isPaidUser) {
+      console.log('Real-time data is only available for premium users');
+      return;
+    }
+    
     this.stockAlertService.connect();
     
     // Subscribe to real-time alerts
     const alertSub = this.stockAlertService.messages$.subscribe({
       next: (alert: StockAlert) => {
-        this.processNewAlert(alert);
+        // Process the new alert with blinking effect for 3 minutes
+        const processedAlert = this.processNewAlert(alert);
+        
+        // Add to the beginning of the premium alerts array
+        this.paidAlerts = [processedAlert, ...this.paidAlerts];
+        
+        // Auto-remove blinking effect after 3 minutes
+        setTimeout(() => {
+          const index = this.paidAlerts.findIndex(a => a.id === processedAlert.id);
+          if (index !== -1) {
+            this.paidAlerts = [
+              ...this.paidAlerts.slice(0, index),
+              { ...this.paidAlerts[index], isBlinking: false },
+              ...this.paidAlerts.slice(index + 1)
+            ];
+            this.cdr.detectChanges();
+          }
+        }, 3 * 60 * 1000); // 3 minutes in milliseconds
       },
       error: (err) => {
         console.error('WebSocket alert error:', err);
@@ -587,53 +543,58 @@ export class StockAlerts implements OnInit, OnDestroy {
       }
     });
     
-    this.subscriptions.add(alertSub);
-    this.subscriptions.add(tickerSub);
-  }
+this.subscriptions.add(alertSub);
+this.subscriptions.add(tickerSub);
+}
 
-  private processNewAlert(alert: StockAlert): void {
+  private processNewAlert(alert: StockAlert): StockAlert {
     try {
       console.log('Processing new alert:', alert);
-      // Convert and add new alert to the beginning of the array
-      const convertedAlert = {
+      const now = new Date();
+      
+      // Convert and process the alert
+      const processedAlert: StockAlert = {
         ...this.convertToStockAlert(alert),
-        receivedAt: new Date().getTime(),
+        receivedAt: now.getTime(),
         isNew: true,
         isBlinking: true
       };
       
-      console.log('Converted alert:', convertedAlert);
+      console.log('Processed alert:', processedAlert);
       
-      // Ensure we're not adding duplicates
+      // Add to realTimeAlerts if not already present
       const existingIndex = this.realTimeAlerts.findIndex(a => 
-        a.symbol === convertedAlert.symbol && 
-        a.alertTime === convertedAlert.alertTime
+        a.symbol === processedAlert.symbol && 
+        a.alertTime === processedAlert.alertTime
       );
       
       if (existingIndex === -1) {
-        this.realTimeAlerts = [convertedAlert, ...this.realTimeAlerts].slice(0, 100);
-        console.log('Added new alert to realTimeAlerts. Total alerts:', this.realTimeAlerts.length);
+        // Add to beginning of array and limit to 100 items
+        this.realTimeAlerts = [processedAlert, ...this.realTimeAlerts].slice(0, 100);
         
         // Stop blinking after 10 seconds
         setTimeout(() => {
           this.realTimeAlerts = this.realTimeAlerts.map(a => 
-            a === convertedAlert ? { ...a, isBlinking: false } : a
+            a === processedAlert ? { ...a, isBlinking: false } : a
           );
           this.cdr.detectChanges();
-        }, 10000); // 10 seconds
+        }, 10000);
         
-        // Remove the 'new' class after 3 minutes
+        // Remove 'new' status after 3 minutes
         setTimeout(() => {
           this.realTimeAlerts = this.realTimeAlerts.map(a => 
-            a === convertedAlert ? { ...a, isNew: false } : a
+            a === processedAlert ? { ...a, isNew: false } : a
           );
           this.cdr.detectChanges();
-        }, 3 * 60 * 1000); // 3 minutes
+        }, 3 * 60 * 1000);
       } else {
         console.log('Alert already exists, skipping duplicate');
       }
+      
+      return processedAlert;
     } catch (error) {
-      console.error('Error processing new alert:', error, 'Alert data:', alert);
+      console.error('Error processing alert:', error);
+      return this.convertToStockAlert(alert);
     }
   }
 
