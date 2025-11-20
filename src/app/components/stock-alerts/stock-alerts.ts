@@ -45,7 +45,7 @@ interface ColumnSettings {
   providers: [DatePipe]
 })
 export class StockAlerts implements OnInit, OnDestroy {
-  hoveredRow: number | null = null;
+  hoveredRow: { index: number, type: 'free' | 'premium' } | null = null;
   freeAlerts: StockAlert[] = [];
   paidAlerts: StockAlert[] = [];
   realTimeAlerts: StockAlert[] = [];
@@ -56,8 +56,29 @@ export class StockAlerts implements OnInit, OnDestroy {
   
   // Pagination
   private pageSize = 20; // Increased page size for better performance
-  private currentPage = 0;
-  hasMore = true;
+  private _currentPage = 0;
+  hasMore = true; // Made public for template access
+
+  // Public getter for currentPage to be used in the template
+  getCurrentPage(): number {
+    return this._currentPage;
+  }
+
+  // Check if a row is being hovered
+  isRowHovered(index: number, type: 'free' | 'premium'): boolean {
+    return this.hoveredRow?.index === index && this.hoveredRow?.type === type;
+  }
+
+  // Handle row mouse enter
+  onRowMouseEnter(index: number, type: 'free' | 'premium'): void {
+    this.hoveredRow = { index, type };
+  }
+
+  // Handle row mouse leave
+  onRowMouseLeave(): void {
+    this.hoveredRow = null;
+  }
+
   isLoading = false;
   private scrollDebounceTimer: any = null;
   private readonly SCROLL_DEBOUNCE = 100; // Reduced debounce time for more responsive scrolling
@@ -142,17 +163,6 @@ export class StockAlerts implements OnInit, OnDestroy {
     return alertTime > fiveMinutesAgo;
   }
 
-  onRowMouseEnter(index: number): void {
-    this.hoveredRow = index;
-  }
-
-  onRowMouseLeave(): void {
-    this.hoveredRow = null;
-  }
-
-  isRowHovered(index: number): boolean {
-    return this.hoveredRow === index;
-  }
 
   private initializeColumns() {
     // Load saved column settings or use defaults
@@ -341,10 +351,10 @@ export class StockAlerts implements OnInit, OnDestroy {
     
     // Update current page if this is a new load
     if (!loadMore) {
-      this.currentPage = response.number || 0;
+      this._currentPage = response.number || 0;
     }
     
-    console.log('Pagination - Has more:', this.hasMore, 'Current page:', this.currentPage);
+    console.log('Pagination - Has more:', this.hasMore, 'Current page:', this._currentPage);
   }
 
   private convertToStockAlert(alert: Record<string, any> & Partial<StockAlert>): StockAlert {
@@ -353,14 +363,14 @@ export class StockAlerts implements OnInit, OnDestroy {
     
     // Helper function to safely get numeric values
     const getNumber = (value: any, defaultValue = 0): number => {
-      if (value === null || value === undefined) return defaultValue;
+      if (value === null || value === undefined || value === '') return defaultValue;
       const num = Number(value);
       return isNaN(num) ? defaultValue : num;
     };
     
     // Helper function to safely get string values
     const getString = (value: any, defaultValue = ''): string => {
-      return value !== null && value !== undefined ? String(value) : defaultValue;
+      return value !== null && value !== undefined && value !== '' ? String(value) : defaultValue;
     };
 
     // Helper function to safely get date values
@@ -369,64 +379,120 @@ export class StockAlerts implements OnInit, OnDestroy {
       if (value instanceof Date) return value.toISOString();
       if (typeof value === 'number') return new Date(value).toISOString();
       if (typeof value === 'string') {
+        // Try to parse the date string
         const date = new Date(value);
         return isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
       }
       return new Date().toISOString();
+    };
+    
+    // Helper to get the first non-null/undefined value from multiple fields
+    const firstValid = (...values: any[]): any => {
+      return values.find(v => v !== null && v !== undefined && v !== '');
     };
 
     // Get current timestamp for fallback values
     const now = new Date();
     const timestamp = now.getTime();
     
-    // Create a new object with all the required fields
+    // Map the API response fields to our StockAlert interface
     const result: StockAlert = {
       // Required fields with fallbacks
-      id: alert.id || timestamp,
-      symbol: getString(alert.symbol, 'N/A'),
-      tradeType: getString(alert.tradeType, 'premium').toUpperCase(),
+      id: getNumber(firstValid(alert['id'], alert['alertId'], timestamp), timestamp),
+      symbol: getString(firstValid(alert['symbol'], alert['stockSymbol'], 'N/A'), 'N/A').toUpperCase(),
+      tradeType: getString(firstValid(alert['tradeType'], alert['type'], 'PREMIUM'), 'PREMIUM').toUpperCase(),
       
-      // Price data with fallbacks
-      ltp: getNumber(alert.ltp ?? alert.lastPrice ?? (alert as any).price, 0),
-      atp: getNumber(alert.atp, 0),
-      openPrice: getNumber(alert.openPrice ?? (alert as any).open, 0),
-      highPrice: getNumber(alert.highPrice ?? (alert as any).high, 0),
-      lowPrice: getNumber(alert.lowPrice ?? (alert as any).low, 0),
-      closePrice: getNumber(alert.closePrice ?? (alert as any).close ?? (alert as any).prevClose, 0),
-      week52High: alert.week52High !== undefined ? getNumber(alert.week52High, 0) : null,
-      week52Low: alert.week52Low !== undefined ? getNumber(alert.week52Low, 0) : null,
+      // Price data with fallbacks - handle both camelCase and snake_case fields
+      ltp: getNumber(firstValid(
+        alert['ltp'], 
+        alert['lastPrice'], 
+        alert['last_price'],
+        alert['price'],
+        alert['closePrice'],
+        alert['close_price']
+      ), 0),
       
-      // Volume data with fallbacks
-      volumeInWindow: getNumber(alert.volumeInWindow ?? (alert as any).volume, 0),
-      thresholdVolume: getNumber(alert.thresholdVolume, 0),
-      volumePercentile: getNumber(alert.volumePercentile, 0),
+      atp: getNumber(firstValid(alert['atp'], alert['averageTradedPrice'], alert['avg_traded_price']), 0),
+      openPrice: getNumber(firstValid(alert['openPrice'], alert['open_price'], alert['open']), 0),
+      highPrice: getNumber(firstValid(alert['highPrice'], alert['high_price'], alert['high']), 0),
+      lowPrice: getNumber(firstValid(alert['lowPrice'], alert['low_price'], alert['low']), 0),
+      closePrice: getNumber(firstValid(
+        alert['closePrice'], 
+        alert['close_price'], 
+        alert['close'], 
+        alert['prevClose'], 
+        alert['prev_close']
+      ), 0),
+      week52High: getNumber(firstValid(alert['week52High'], alert['week_52_high']), 0),
+      week52Low: getNumber(firstValid(alert['week52Low'], alert['week_52_low']), 0),
       
-      // Map market data with fallbacks
-      exchange: getString(alert.exchange, 'NSE'),
-      marketCap: getNumber(alert.marketCap, 0),
-      peRatio: getNumber(alert.peRatio, 0),
-      avgVolume: getNumber(alert.avgVolume ?? (alert as any).averageVolume, 0),
+      // Volume data with fallbacks - handle both camelCase and snake_case
+      volumeInWindow: getNumber(firstValid(
+        alert['volumeInWindow'], 
+        alert['volume_in_window'], 
+        alert['volume'],
+        alert['tradedVolume'],
+        alert['traded_volume']
+      ), 0),
       
-      // Map alert metadata with fallbacks
-      percentChange: getNumber(alert.percentChange ?? (alert as any).change, 0),
-      change: getNumber((alert as any).change ?? alert.percentChange, 0),
-      datasource: getString(alert.datasource, 'premium'),
-      alertTime: getDate(alert.alertTime ?? (alert as any).timestamp ?? (alert as any).time ?? timestamp),
-      exchangeTime: getDate(alert.exchangeTime ?? (alert as any).timestamp ?? (alert as any).time ?? timestamp),
-      delaySeconds: getNumber(alert.delaySeconds, 0),
+      thresholdVolume: getNumber(firstValid(alert['thresholdVolume'], alert['threshold_volume']), 0),
+      volumePercentile: getNumber(firstValid(alert['volumePercentile'], alert['volume_percentile']), 0),
+      
+      // Market data with fallbacks
+      exchange: getString(firstValid(alert['exchange'], alert['exchangeName'], 'NSE'), 'NSE'),
+      marketCap: getNumber(firstValid(alert['marketCap'], alert['market_cap'], alert['mcap']), 0),
+      peRatio: getNumber(firstValid(alert['peRatio'], alert['pe_ratio'], alert['pe']), 0),
+      avgVolume: getNumber(firstValid(alert['avgVolume'], alert['average_volume'], alert['avg_volume']), 0),
+      
+      // Alert metadata with fallbacks
+      percentChange: getNumber(firstValid(
+        alert['percentChange'], 
+        alert['percent_change'], 
+        alert['changePercent'],
+        alert['change_percent'],
+        alert['pctChange'],
+        alert['pct_change']
+      ), 0),
+      
+      change: getNumber(firstValid(
+        alert['change'],
+        alert['priceChange'],
+        alert['price_change']
+      ), 0),
+      
+      datasource: getString(firstValid(alert['datasource'], alert['source'], 'free'), 'free'),
+      alertTime: getDate(firstValid(
+        alert['alertTime'],
+        alert['alert_time'],
+        alert['timestamp'],
+        alert['time'],
+        alert['createdAt'],
+        alert['created_at'],
+        timestamp
+      )),
+      
+      exchangeTime: getDate(firstValid(
+        alert['exchangeTime'],
+        alert['exchange_time'],
+        alert['timestamp'],
+        alert['time'],
+        timestamp
+      )),
+      
+      delaySeconds: getNumber(firstValid(alert['delaySeconds'], alert['delay_seconds']), 0),
       
       // Map URLs with fallbacks
-      analyzerUrl: getString(alert.analyzerUrl, ''),
-      liveOptionChartUrl: getString(alert.liveOptionChartUrl, ''),
-      futChartUrl: getString(alert.futChartUrl, ''),
-      equityChartUrl: getString(alert.equityChartUrl, ''),
-      newsUrl: getString(alert.newsUrl, ''),
-      oiUrl: getString(alert.oiUrl, ''),
+      analyzerUrl: getString(alert['analyzerUrl'], ''),
+      liveOptionChartUrl: getString(alert['liveOptionChartUrl'], ''),
+      futChartUrl: getString(alert['futChartUrl'], ''),
+      equityChartUrl: getString(alert['equityChartUrl'], ''),
+      newsUrl: getString(alert['newsUrl'], ''),
+      oiUrl: getString(alert['oiUrl'], ''),
       
       // System fields
-      createdAt: getNumber(alert.createdAt, timestamp),
-      redisAlertKey: alert.redisAlertKey !== undefined ? getString(alert.redisAlertKey, '') : null,
-      redisKeyExpiry: getNumber(alert.redisKeyExpiry, 0)
+      createdAt: getNumber(alert['createdAt'] || alert['created_at'], timestamp),
+      redisAlertKey: alert['redisAlertKey'] !== undefined ? getString(alert['redisAlertKey'], '') : null,
+      redisKeyExpiry: getNumber(alert['redisKeyExpiry'] || alert['redis_key_expiry'], 0)
     };
     
     console.log('Converted StockAlert:', result);
@@ -435,18 +501,22 @@ export class StockAlerts implements OnInit, OnDestroy {
   }
 
   loadFreeAlerts(loadMore: boolean = false): void {
+    console.group('loadFreeAlerts');
+    console.log('loadMore:', loadMore, 'currentPage:', this._currentPage, 'hasMore:', this.hasMore);
+    
     if (this.isLoading) {
       console.log('Skipping load - already loading');
+      console.groupEnd();
       return;
     }
     
     // Determine the target page - increment only if we're loading more
-    const targetPage = loadMore ? this.currentPage + 1 : 0;
+    const targetPage = loadMore ? this._currentPage + 1 : 0;
     
     // Only reset the list on initial load
     if (!loadMore) {
       console.log('Initial load of free alerts');
-      this.currentPage = 0;
+      this._currentPage = 0;
       this.hasMore = true;
       this.freeAlerts = [];
       window.scrollTo(0, 0);
@@ -456,6 +526,7 @@ export class StockAlerts implements OnInit, OnDestroy {
 
     if (!this.hasMore) {
       console.log('No more free alerts to load');
+      console.groupEnd();
       return;
     }
 
@@ -469,11 +540,30 @@ export class StockAlerts implements OnInit, OnDestroy {
     const tableContainer = document.querySelector('.table-responsive');
     const scrollPosition = tableContainer ? tableContainer.scrollTop : 0;
 
+    console.log('Calling stockAlertService.getFreeAlerts with page:', targetPage, 'size:', this.pageSize);
+    
+    // For debugging - log the current state
+    console.log('Current state before API call:', {
+      freeAlerts: this.freeAlerts,
+      isLoading: this.isLoading,
+      hasMore: this.hasMore,
+      currentPage: this._currentPage
+    });
+    
     this.stockAlertService.getFreeAlerts(targetPage, this.pageSize)
       .pipe(
         finalize(() => {
+          console.log('Finalizing request...');
           this.isLoading = false;
           this.loading.free = false;
+          
+          console.log('Final state:', {
+            freeAlerts: this.freeAlerts,
+            isLoading: this.isLoading,
+            hasMore: this.hasMore,
+            currentPage: this._currentPage
+          });
+          
           this.cdr.detectChanges();
           
           // Restore scroll position after update
@@ -482,19 +572,46 @@ export class StockAlerts implements OnInit, OnDestroy {
               tableContainer.scrollTop = scrollPosition;
             }, 0);
           }
+          
+          console.groupEnd(); // End the loadFreeAlerts group
         })
       )
       .subscribe({
         next: (response: PaginatedResponse<StockAlert>) => {
-          console.log('Received free alerts response:', response);
+          console.group('Free Alerts Response');
+          console.log('Raw response:', response);
           
           if (!response) {
             console.error('Empty response received');
             this.error = 'Received empty response from server';
+            console.groupEnd();
             return;
           }
-
-          const alerts = response.content?.map(alert => this.convertToStockAlert(alert)) || [];
+          
+          // Handle case where response might be an array directly
+          let alertsData = Array.isArray(response) ? response : 
+                         (response.content || []);
+          
+          console.log('Alerts data:', alertsData);
+          console.log('Number of alerts:', alertsData.length);
+          
+          if (!Array.isArray(alertsData)) {
+            console.error('Invalid alerts data format:', alertsData);
+            this.error = 'Invalid response format from server';
+            console.groupEnd();
+            return;
+          }
+          
+          // Convert each alert to the correct format
+          const alerts = alertsData.map(alert => {
+            try {
+              return this.convertToStockAlert(alert);
+            } catch (error) {
+              console.error('Error converting alert:', error, 'Raw alert:', alert);
+              return null;
+            }
+          }).filter(Boolean) as StockAlert[];
+          
           console.log('Processed alerts:', alerts);
           
           if (loadMore) {
@@ -505,35 +622,41 @@ export class StockAlerts implements OnInit, OnDestroy {
             if (newAlerts.length === 0) {
               console.log('No new alerts to add');
               this.hasMore = false;
+              console.groupEnd();
               return;
             }
             
+            console.log(`Adding ${newAlerts.length} new alerts`);
             this.freeAlerts = [...this.freeAlerts, ...newAlerts];
           } else {
+            console.log(`Setting ${alerts.length} alerts`);
             this.freeAlerts = alerts;
           }
           
           // Update pagination state based on server response
           this.hasMore = alerts.length === this.pageSize;
-          this.currentPage = targetPage;
+          this._currentPage = targetPage;
           
-          console.log('Updated freeAlerts count:', this.freeAlerts.length);
-          console.log('hasMore:', this.hasMore, 'currentPage:', this.currentPage);
+          console.log('Updated state:', {
+            freeAlertsCount: this.freeAlerts.length,
+            hasMore: this.hasMore,
+            currentPage: this._currentPage
+          });
           
-          console.log('Updated freeAlerts:', this.freeAlerts);
-          console.log('hasMore:', this.hasMore, 'currentPage:', this.currentPage);
+          console.groupEnd();
         },
         error: (err: any) => {
           console.error('Error loading free alerts:', err);
           this.error = 'Failed to load free alerts. Please try again.';
           this.freeAlerts = [];
+          console.groupEnd();
         }
       });
   }
 
   loadPaidAlerts(loadMore: boolean = false): Promise<void> {
     return new Promise((resolve, reject) => {
-      console.log('loadPaidAlerts called, isPaidUser:', this.isPaidUser, 'loadMore:', loadMore, 'page:', this.currentPage);
+      console.log('loadPaidAlerts called, isPaidUser:', this.isPaidUser, 'loadMore:', loadMore, 'page:', this._currentPage);
       
       if (!this.isPaidUser) {
         console.warn('User is not a paid user, cannot load paid alerts');
@@ -552,12 +675,12 @@ export class StockAlerts implements OnInit, OnDestroy {
         return resolve();
       }
       
-      const targetPage = loadMore ? this.currentPage + 1 : 0;
+      const targetPage = loadMore ? this._currentPage + 1 : 0;
       
       // Only reset the list and scroll to top on initial load
       if (!loadMore) {
         console.log('Initial load of paid alerts');
-        this.currentPage = 0;
+        this._currentPage = 0;
         this.hasMore = true;
         this.paidAlerts = [];
         window.scrollTo(0, 0);
@@ -641,10 +764,10 @@ export class StockAlerts implements OnInit, OnDestroy {
               
               // Update pagination state
               this.hasMore = alerts.length === this.pageSize;
-              this.currentPage = targetPage;
+              this._currentPage = targetPage;
               
               console.log('Updated paidAlerts count:', this.paidAlerts.length);
-              console.log('hasMore:', this.hasMore, 'currentPage:', this.currentPage);
+              console.log('hasMore:', this.hasMore, 'currentPage:', this._currentPage);
               
               resolve();
             } catch (error) {
@@ -660,7 +783,7 @@ export class StockAlerts implements OnInit, OnDestroy {
           }
         });
 
-      const subscription = this.stockAlertService.getPaidAlerts(this.currentPage, this.pageSize)
+      const subscription = this.stockAlertService.getPaidAlerts(this._currentPage, this.pageSize)
         .pipe(
           finalize(() => {
             this.isLoading = false;
@@ -715,12 +838,12 @@ export class StockAlerts implements OnInit, OnDestroy {
                            (response as any)?.has_next || 
                            (response.totalElements > this.paidAlerts.length);
               
-              this.currentPage = (response as any)?.number !== undefined 
-                ? (response as any).number + 1 
-                : this.currentPage + 1;
+              this._currentPage = (response as any)?.number !== undefined 
+                ? (response as any).number 
+                : this._currentPage + 1;
               
               console.log('Updated paidAlerts:', this.paidAlerts);
-              console.log('hasMore:', this.hasMore, 'currentPage:', this.currentPage);
+              console.log('hasMore:', this.hasMore, 'currentPage:', this._currentPage);
               
               if (this.paidAlerts.length === 0 && !loadMore) {
                 console.log('No paid alerts found');

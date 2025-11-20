@@ -199,7 +199,7 @@ export class StockAlertService {
       .set('page', page.toString())
       .set('size', size.toString());
 
-    const url = `${this.API_BASE_URL}/free`;
+    const url = `${this.API_BASE_URL}/alerts/free`;
     console.log('Fetching free alerts from:', url);
     
     return this.http.get<PaginatedResponse<StockAlert>>(url, {

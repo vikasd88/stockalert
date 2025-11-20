@@ -110,12 +110,33 @@
                             <td *ngIf="col.key !== 'actions'" [class]="col.key + '-cell'" [class.positive]="(col.key === 'change' || col.key === 'percentChange') && (col.key === 'percentChange' ? (alert.percentChange || 0) >= 0 : (alert['change'] || 0) >= 0)" [class.negative]="(col.key === 'change' || col.key === 'percentChange') && (col.key === 'percentChange' ? (alert.percentChange || 0) < 0 : (alert['change'] || 0) < 0)" [attr.data-column]="col.key">
                                 <ng-container [ngSwitch]="col.key">
                                     <!-- Symbol -->
-                                    <span *ngSwitchCase="'symbol'" class="symbol">
-                    {{ alert.symbol }}
-                  </span>
-
-                                <!-- Trade Type -->
-                                <span *ngSwitchCase="'tradeType'" class="trade-type" [class]="(alert.tradeType || '').toLowerCase()">
+                                    <div *ngSwitchCase="'symbol'" class="symbol-cell">
+                                        <span class="symbol-text">{{ alert.symbol }}</span>
+                                        <div class="action-buttons">
+                                            <!-- Live Options Chart -->
+                                            <a *ngIf="alert.liveOptionChartUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.liveOptionChartUrl)" class="action-button" title="Live Options Chart">
+                                                <i class="fas fa-chart-line"></i>
+                                            </a>
+                                            <!-- Futures Chart -->
+                                            <a *ngIf="alert.futChartUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.futChartUrl)" class="action-button" title="Futures Chart">
+                                                <i class="fas fa-arrow-trend-up"></i>
+                                            </a>
+                                            <!-- Equity Chart -->
+                                            <a *ngIf="alert.equityChartUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.equityChartUrl)" class="action-button" title="Equity Chart">
+                                                <i class="fas fa-chart-column"></i>
+                                            </a>
+                                            <!-- News -->
+                                            <a *ngIf="alert.newsUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.newsUrl)" class="action-button" title="News">
+                                                <i class="far fa-newspaper"></i>
+                                            </a>
+                                            <!-- Open Interest -->
+                                            <a *ngIf="alert.oiUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.oiUrl)" class="action-button" title="Open Interest">
+                                                <i class="fas fa-chart-pie"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <!-- Trade Type -->
+                                    <span *ngSwitchCase="'tradeType'" class="trade-type" [class]="(alert.tradeType || '').toLowerCase()">
                     {{ alert.tradeType || 'N/A' }}
                   </span>
 
@@ -212,6 +233,11 @@
             </div>
 
             <div *ngIf="!loading.free && !error" class="alerts-content">
+                <div *ngIf="freeAlerts.length === 0" class="no-alerts">
+                    <p>No alerts found. freeAlerts array is empty.</p>
+                    <p>Loading state: {{ loading.free }}, Error: {{ error || 'None' }}</p>
+                    <button (click)="loadFreeAlerts()" class="retry-button">Retry Loading</button>
+                </div>
                 <div class="table-responsive" *ngIf="freeAlerts.length > 0; else noFreeAlerts" (scroll)="onTableScroll($event, 'free')">
                     <table class="alerts-table">
                         <colgroup>
@@ -227,60 +253,57 @@
                                     {{ col.label }}
                                 </th>
                             </ng-container>
-                            <th class="actions-header">Actions</th>
                         </tr>
                         </thead>
                         <tbody>
-                        <tr *ngFor="let alert of freeAlerts">
+                        <tr *ngFor="let alert of freeAlerts; let i = index" 
+                            [class.highlight-row]="isNewAlert(alert)"
+                            (mouseenter)="onRowMouseEnter(i, 'free')"
+                            (mouseleave)="onRowMouseLeave()"
+                            [class.row-hover]="isRowHovered(i, 'free')">
                             <ng-container *ngFor="let col of visibleColumns">
-                                <td
-                                        *ngIf="col.key !== 'actions'"
-                                        [class]="col.key + '-cell'"
-                                        [class.positive]="(col.key === 'change' || col.key === 'percentChange') && (col.key === 'percentChange' ? (alert.percentChange || 0) >= 0 : (alert['change'] || 0) >= 0)"
-                                        [class.negative]="(col.key === 'change' || col.key === 'percentChange') && (col.key === 'percentChange' ? (alert.percentChange || 0) < 0 : (alert['change'] || 0) < 0)"
-                                >
+                                <td *ngIf="col.key !== 'actions'"
+                                    [class]="col.key + '-cell'"
+                                    [class.positive]="(col.key === 'change' || col.key === 'percentChange') && (col.key === 'percentChange' ? (alert.percentChange || 0) >= 0 : (alert['change'] || 0) >= 0)"
+                                    [class.negative]="(col.key === 'change' || col.key === 'percentChange') && (col.key === 'percentChange' ? (alert.percentChange || 0) < 0 : (alert['change'] || 0) < 0)"
+                                    [class.symbol-cell]="col.key === 'symbol'"
+                                    [class.actions-hover]="col.key === 'symbol'"
+                                    [class.has-actions]="col.key === 'symbol' && (alert.liveOptionChartUrl || alert.futChartUrl || alert.equityChartUrl || alert.newsUrl || alert.oiUrl)">
                                     <ng-container [ngSwitch]="col.key">
                                         <span *ngSwitchCase="'exchangeTime'">{{ alert[col.key] | date:'mediumTime' }}</span>
+                                        <div *ngSwitchCase="'symbol'" class="symbol-cell">
+                                            <span class="symbol-text">{{alert.id}}{{ alert.symbol }}</span>
+                                            <div class="action-buttons">
+                                                <!-- Live Options Chart -->
+                                                <a *ngIf="alert.liveOptionChartUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.liveOptionChartUrl)" class="action-button" title="Live Options Chart">
+                                                    <i class="fas fa-chart-line"></i>
+                                                </a>
+                                                <!-- Futures Chart -->
+                                                <a *ngIf="alert.futChartUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.futChartUrl)" class="action-button" title="Futures Chart">
+                                                    <i class="fas fa-arrow-trend-up"></i>
+                                                </a>
+                                                <!-- Equity Chart -->
+                                                <a *ngIf="alert.equityChartUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.equityChartUrl)" class="action-button" title="Equity Chart">
+                                                    <i class="fas fa-chart-column"></i>
+                                                </a>
+                                                <!-- News -->
+                                                <a *ngIf="alert.newsUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.newsUrl)" class="action-button" title="News">
+                                                    <i class="far fa-newspaper"></i>
+                                                </a>
+                                                <!-- Open Interest -->
+                                                <a *ngIf="alert.oiUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.oiUrl)" class="action-button" title="Open Interest">
+                                                    <i class="fas fa-chart-pie"></i>
+                                                </a>
+                                            </div>
+                                        </div>
                                         <span *ngSwitchCase="'percentChange'" [class.positive]="(alert.percentChange || 0) >= 0" [class.negative]="(alert.percentChange || 0) < 0">
-                      {{ alert.percentChange | number:'1.2-2' }}%
-                    </span>
+                                            {{ alert.percentChange | number:'1.2-2' }}%
+                                        </span>
                                         <span *ngSwitchDefault>{{ alert[col.key] }}</span>
                                     </ng-container>
                                 </td>
                             </ng-container>
-                            <td class="actions-cell">
-                                <div class="table-actions">
-                                    <button class="action-button chart-btn" (click)="openChart(alert)" title="View Chart">
-                                        <i class="fas fa-chart-line"></i>
-                                    </button>
-                                    <button class="action-button screener-btn" (click)="openScreener(alert)" title="View in Screener">
-                                        <i class="fas fa-search"></i>
-                                    </button>
-                                    <button class="action-button option-chain-btn" (click)="openOptionChain(alert)" title="View Option Chain">
-                                        <i class="fas fa-link"></i>
-                                    </button>
-                                    <button class="action-button watchlist-btn" (click)="addToWatchlist(alert)" title="Add to Watchlist">
-                                        <i class="fas fa-plus"></i>
-                                    </button>
-
-                                    <!-- Legacy buttons - hidden by default, shown only if no other actions are available -->
-                                    <a *ngIf="alert.liveOptionChartUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.liveOptionChartUrl)" class="action-button legacy" title="Live Options Chart">
-                                        <i class="fas fa-chart-line"></i> Options
-                                    </a>
-                                    <a *ngIf="alert.futChartUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.futChartUrl)" class="action-button legacy" title="Futures Chart">
-                                        <i class="fas fa-chart-line"></i> Futures
-                                    </a>
-                                    <a *ngIf="alert.equityChartUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.equityChartUrl)" class="action-button legacy" title="Equity Chart">
-                                        <i class="fas fa-chart-line"></i> Equity
-                                    </a>
-                                    <a *ngIf="alert.newsUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.newsUrl)" class="action-button legacy" title="View News">
-                                        <i class="far fa-newspaper"></i> News
-                                    </a>
-                                    <a *ngIf="alert.oiUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.oiUrl)" class="action-button" title="Open Interest">
-                                        <i class="fas fa-chart-bar"></i> OI
-                                    </a>
-                                </div>
-                            </td>
+                           
                         </tr>
                         </tbody>
                     </table>
@@ -292,7 +315,7 @@
                     </div>
 
                     <!-- No more data indicator -->
-                    <div *ngIf="!hasMore && freeAlerts.length > 0" class="no-more-data">
+                    <div *ngIf="!hasMore && freeAlerts.length > 0" class="no-more-alerts">
                         No more alerts to load
                     </div>
                 </div>
@@ -347,9 +370,9 @@
                             <tr
                                 *ngFor="let alert of paidAlerts; let i = index"
                                 [class.highlight-row]="isNewAlert(alert)"
-                                (mouseenter)="onRowMouseEnter(i)"
+                                (mouseenter)="onRowMouseEnter(i, 'free')"
                                 (mouseleave)="onRowMouseLeave()"
-                                [class.row-hover]="isRowHovered(i)">
+                                [class.row-hover]="isRowHovered(i, 'free')">
                                 <ng-container *ngFor="let col of visibleColumns">
                                     <td *ngIf="col.key !== 'actions'"
                                         [class]="col.key + '-cell'"
@@ -403,7 +426,7 @@
                     </div>
 
                     <!-- No more data indicator -->
-                    <div *ngIf="!hasMore && paidAlerts.length > 0" class="no-more-data">
+                    <div *ngIf="!hasMore && paidAlerts.length > 0" class="no-more-alerts">
                         No more alerts to load
                     </div>
                 </div>
@@ -413,7 +436,7 @@
                         <p>No premium alerts available at the moment</p>
                         <p class="hint">Check back later for new alerts</p>
                     </div>
-                    <div *ngIf="paidAlerts && paidAlerts.length > 0 && hasMore && !loading.paid" class="load-more-trigger"></div>
+                    <div *ngIf="isPaidUser && paidAlerts.length > 0 && hasMore && !loading.paid" class="load-more-trigger"></div>
                 </ng-template>
             </div>
         </div>
