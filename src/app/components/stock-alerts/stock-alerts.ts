@@ -814,4 +814,28 @@ export class StockAlerts implements OnInit, OnDestroy {
       this.stockAlertService.disconnect();
     }
   }
+
+   /**
+   * Redirects to an external URL while hiding the referrer.
+   * @param url The external URL to navigate to.
+   */
+   redirectToExternalUrl(url: string): void {
+    if (!url) return;
+    
+    // Create a temporary link element
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Set rel="noreferrer" to hide the referrer information
+    link.rel = 'noreferrer';
+    
+    // Programmatically click the link to trigger navigation
+    // This is a common technique to ensure the rel attribute is respected
+    // and is more reliable than window.open with a blank target.
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
 }

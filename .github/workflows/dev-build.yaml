@@ -1,0 +1,294 @@
+# This workflow builds and deploys an Angular application to DigitalOcean Spaces CDN and Docker
+name: Versioned CDN and Docker Deployment
+
+on:
+  push:
+    branches: [dev, main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+env:
+  SPACE_NAME: sca-dev
+  SPACE_REGION: blr1
+  CDN_ENDPOINT: https://sca-dev.blr1.cdn.digitaloceanspaces.com
+  ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
+  NODE_VERSION: '20.x'
+  ACCESS_KEY: DO8018BYBRCGMRAZB2BH
+  SECRET_KEY: hmklWqN9GzNuLKcpiXrEq8Bs/HqIe39efiFxrikQPkI
+  # Docker registry settings
+  REGISTRY: 192.168.1.11:5000
+  IMAGE_NAME: ${{ github.event.repository.name }}
+  IMAGE_TAG: ${{ github.run_number }}
+  DOCKER_USER: stella
+  DOCKER_PASS: Cra@2023
+  CURRENT_REPO: ${{ github.event.repository.name }}
+
+jobs:
+  build-and-push:
+    runs-on: dev1
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Generate build info
+        id: build_info
+        run: |
+          # Get GitHub Actions run number (build number)
+          BUILD_NUMBER=${{ github.run_number }}
+
+          # Get short commit hash for reference
+          SHORT_HASH=$(git rev-parse --short HEAD)
+
+          # Get branch name
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $GITHUB_ENV
+          echo "BUILD_HASH=$SHORT_HASH" >> $GITHUB_ENV
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+          echo "VERSION_DIR=versions/$BUILD_NUMBER" >> $GITHUB_ENV
+
+          echo "🔧 Build Information:"
+          echo "   Build #: $BUILD_NUMBER"
+          echo "   Commit: $SHORT_HASH"
+          echo "   Branch: $BRANCH_NAME"
+          echo "   Version Dir: versions/$BUILD_NUMBER"
+
+      - name: Install dependencies
+        run: |
+          npm install
+
+      - name: Build Angular with versioned paths
+        run: |
+          VERSION_DIR="${{ env.VERSION_DIR }}"
+          echo "🏗️ Building Angular with base href: /$VERSION_DIR/"
+
+          # Build with versioned base href to fix asset paths
+          npx ng build --configuration=production --base-href="/$VERSION_DIR/" --deploy-url="/$VERSION_DIR/" || \
+          npm run build:prod -- --base-href="/$VERSION_DIR/" --deploy-url="/$VERSION_DIR/" || \
+          npm run build -- --base-href="/$VERSION_DIR/" --deploy-url="/$VERSION_DIR/"
+
+      - name: Upload files to CDN using curl
+        run: |
+          VERSION_DIR="${{ env.VERSION_DIR }}"
+          BUILD_DIR="dist/spectacles-store/browser"
+
+          echo "🚀 Uploading to: ${{ env.CDN_ENDPOINT }}/$VERSION_DIR/"
+          echo "📁 Source: $BUILD_DIR"
+          echo "📦 Total files: $(find "$BUILD_DIR" -type f | wc -l)"
+
+          # Function to upload a file
+          upload_file() {
+            local file_path="$1"
+            local relative_path="${file_path#$BUILD_DIR/}"
+            local remote_path="$VERSION_DIR/$relative_path"
+
+            # Determine content type
+            if [[ "$file_path" == *.html ]]; then
+              CONTENT_TYPE="text/html"
+            elif [[ "$file_path" == *.css ]]; then
+              CONTENT_TYPE="text/css"
+            elif [[ "$file_path" == *.js ]]; then
+              CONTENT_TYPE="application/javascript"
+            elif [[ "$file_path" == *.json ]]; then
+              CONTENT_TYPE="application/json"
+            elif [[ "$file_path" == *.png ]]; then
+              CONTENT_TYPE="image/png"
+            elif [[ "$file_path" == *.jpg ]] || [[ "$file_path" == *.jpeg ]]; then
+              CONTENT_TYPE="image/jpeg"
+            elif [[ "$file_path" == *.svg ]]; then
+              CONTENT_TYPE="image/svg+xml"
+            elif [[ "$file_path" == *.ico ]]; then
+              CONTENT_TYPE="image/x-icon"
+            else
+              CONTENT_TYPE="application/octet-stream"
+            fi
+
+            DATE=$(date -R)
+            ACL="x-amz-acl:public-read"
+
+            # Create signature
+            STRING="PUT\n\n$CONTENT_TYPE\n$DATE\n$ACL\n/$SPACE_NAME/$remote_path"
+            SIGNATURE=$(echo -en "$STRING" | openssl sha1 -hmac "$SECRET_KEY" -binary | base64)
+
+            echo "⬆️  $relative_path"
+
+            # Upload file
+            curl -X PUT -T "$file_path" \
+              -H "Host: $SPACE_NAME.$SPACE_REGION.digitaloceanspaces.com" \
+              -H "Date: $DATE" \
+              -H "Content-Type: $CONTENT_TYPE" \
+              -H "$ACL" \
+              -H "Authorization: AWS $ACCESS_KEY:$SIGNATURE" \
+              "https://$SPACE_NAME.$SPACE_REGION.digitaloceanspaces.com/$remote_path" \
+              --silent --fail
+          }
+
+          export BUILD_DIR VERSION_DIR SPACE_NAME SPACE_REGION ACCESS_KEY SECRET_KEY
+          export -f upload_file
+
+          find "$BUILD_DIR" -type f -exec bash -c 'upload_file "$0"' {} \;
+
+          echo "✅ All files uploaded successfully to CDN!"
+
+      - name: Create and upload version metadata to CDN
+        run: |
+          VERSION_DIR="${{ env.VERSION_DIR }}"
+
+          # Create detailed version.json
+          node -e "
+          const versionData = {
+            build_number: ${{ env.BUILD_NUMBER }},
+            build_hash: '${{ env.BUILD_HASH }}',
+            branch: '${{ env.BRANCH_NAME }}',
+            deployed_at: new Date().toISOString(),
+            environment: '${{ env.ENVIRONMENT }}',
+            git_commit: '${{ github.sha }}',
+            cdn_url: '${{ env.CDN_ENDPOINT }}/$VERSION_DIR/index.html',
+            build_info: {
+              runner: 'GitHub Actions',
+              workflow: '${{ github.workflow }}',
+              run_id: '${{ github.run_id }}',
+              run_number: ${{ github.run_number }}
+            }
+          };
+          require('fs').writeFileSync('version.json', JSON.stringify(versionData, null, 2));
+          "
+
+          # Upload version.json to CDN
+          DATE=$(date -R)
+          CONTENT_TYPE="application/json"
+          ACL="x-amz-acl:public-read"
+          REMOTE_PATH="$VERSION_DIR/version.json"
+
+          STRING="PUT\n\n$CONTENT_TYPE\n$DATE\n$ACL\n/$SPACE_NAME/$REMOTE_PATH"
+          SIGNATURE=$(echo -en "$STRING" | openssl sha1 -hmac "$SECRET_KEY" -binary | base64)
+
+          curl -X PUT -T "version.json" \
+            -H "Host: $SPACE_NAME.$SPACE_REGION.digitaloceanspaces.com" \
+            -H "Date: $DATE" \
+            -H "Content-Type: $CONTENT_TYPE" \
+            -H "$ACL" \
+            -H "Authorization: AWS $ACCESS_KEY:$SIGNATURE" \
+            "https://$SPACE_NAME.$SPACE_REGION.digitaloceanspaces.com/$REMOTE_PATH" \
+            --silent --fail
+
+      - name: Update current version pointer on CDN
+        run: |
+          VERSION_DIR="${{ env.VERSION_DIR }}"
+          echo "$VERSION_DIR" > current.txt
+
+          DATE=$(date -R)
+          CONTENT_TYPE="text/plain"
+          ACL="x-amz-acl:public-read"
+          REMOTE_PATH="current.txt"
+
+          STRING="PUT\n\n$CONTENT_TYPE\n$DATE\n$ACL\n/$SPACE_NAME/$REMOTE_PATH"
+          SIGNATURE=$(echo -en "$STRING" | openssl sha1 -hmac "$SECRET_KEY" -binary | base64)
+
+          curl -X PUT -T "current.txt" \
+            -H "Host: $SPACE_NAME.$SPACE_REGION.digitaloceanspaces.com" \
+            -H "Date: $DATE" \
+            -H "Content-Type: $CONTENT_TYPE" \
+            -H "$ACL" \
+            -H "Authorization: AWS $ACCESS_KEY:$SIGNATURE" \
+            "https://$SPACE_NAME.$SPACE_REGION.digitaloceanspaces.com/$REMOTE_PATH" \
+            --silent --fail
+
+      - name: Log in to private Docker registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ env.DOCKER_USER }}
+          password: ${{ env.DOCKER_PASS }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          config-inline: |
+            [registry."192.168.1.11:5000"]
+              http = true
+              insecure = true
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ env.IMAGE_TAG }}
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
+
+      - name: Final Deployment Summary
+        run: |
+          VERSION_DIR="${{ env.VERSION_DIR }}"
+          echo ""
+          echo "🎉 DUAL DEPLOYMENT SUCCESSFUL!"
+          echo "=============================="
+          echo "🚀 YOUR ANGULAR APP IS LIVE!"
+          echo ""
+          echo "🌐 CDN URL:"
+          echo "   ${{ env.CDN_ENDPOINT }}/$VERSION_DIR/index.html"
+          echo ""
+          echo "🐳 DOCKER IMAGE:"
+          echo "   ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+          echo ""
+          echo "📋 Build Information:"
+          echo "   Build: #${{ env.BUILD_NUMBER }}"
+          echo "   Commit: ${{ env.BUILD_HASH }}"
+          echo "   Branch: ${{ env.BRANCH_NAME }}"
+          echo "   Environment: ${{ env.ENVIRONMENT }}"
+          echo ""
+          echo "🔗 Test CDN: curl -s '${{ env.CDN_ENDPOINT }}/$VERSION_DIR/index.html' | head -n 5"
+  update-kustomize:
+    needs: build-and-push
+    runs-on: dev1
+    steps:
+      - name: Clone k8s manifests repository
+        run: |
+          git clone https://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@github.com/gsns-alpha/scd-k8s-manifests.git kustomize-repo
+
+      - name: Update image tag in dev overlay
+        working-directory: kustomize-repo
+        run: |
+          echo "Current repository name: $CURRENT_REPO"
+          echo "Updating image tag in ./apps/$CURRENT_REPO/overlays/dev/"
+          
+          # Navigate to the service-specific overlay directory
+          cd ./apps/$CURRENT_REPO/overlays/dev/
+          
+          # Update the image tag using kustomize with dynamic repository name
+          kustomize edit set image ${{ env.REGISTRY }}/$CURRENT_REPO=${{ env.REGISTRY }}/$CURRENT_REPO:${{ env.IMAGE_TAG }}
+          
+          # Configure git and commit changes
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add kustomization.yaml
+          git commit -m "ci: update $CURRENT_REPO image to tag ${{ env.IMAGE_TAG }}"
+          git push
+          
+          echo "✅ Successfully updated kustomization.yaml for $CURRENT_REPO with tag ${{ env.IMAGE_TAG }}"

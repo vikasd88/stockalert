@@ -1,4 +1,5 @@
-<div class="stock-alerts-container">
+<div class="main-container">
+  <div class="stock-alerts-container">
     <!-- Market Ticker -->
     <app-market-ticker [tickerData]="tickerData"></app-market-ticker>
 
@@ -188,19 +189,19 @@
                     <td class="actions-cell">
                         <div class="table-actions">
                            
-                            <a *ngIf="alert.liveOptionChartUrl" [href]="alert.liveOptionChartUrl" target="_blank" class="action-button" title="Live Options Chart">
+                            <a *ngIf="alert.liveOptionChartUrl" (click)="redirectToExternalUrl(alert.liveOptionChartUrl)" class="action-button" title="Live Options Chart">
                                 <i class="fas fa-chart-line"></i> Options
                             </a>
-                            <a *ngIf="alert.futChartUrl" [href]="alert.futChartUrl" target="_blank" class="action-button" title="Futures Chart">
+                            <a *ngIf="alert.futChartUrl" (click)="redirectToExternalUrl(alert.futChartUrl)" class="action-button" title="Futures Chart">
                                 <i class="fas fa-chart-line"></i> Futures
                             </a>
-                            <a *ngIf="alert.equityChartUrl" [href]="alert.equityChartUrl" target="_blank" class="action-button" title="Equity Chart">
+                            <a *ngIf="alert.equityChartUrl" (click)="redirectToExternalUrl(alert.equityChartUrl)" class="action-button" title="Equity Chart">
                                 <i class="fas fa-chart-line"></i> Equity
                             </a>
-                            <a *ngIf="alert.newsUrl" [href]="alert.newsUrl" target="_blank" class="action-button" title="View News">
+                            <a *ngIf="alert.newsUrl" (click)="redirectToExternalUrl(alert.newsUrl)" class="action-button" title="View News">
                                 <i class="far fa-newspaper"></i> News
                             </a>
-                            <a *ngIf="alert.oiUrl" [href]="alert.oiUrl" target="_blank" class="action-button" title="Open Interest">
+                            <a *ngIf="alert.oiUrl" (click)="redirectToExternalUrl(alert.oiUrl)" class="action-button" title="Open Interest">
                                 <i class="fas fa-chart-bar"></i> OI
                             </a>
                         </div>
@@ -271,19 +272,19 @@
                         <td class="actions-cell">
                             <div class="table-actions">
                                
-                                <a *ngIf="alert.liveOptionChartUrl" [href]="alert.liveOptionChartUrl" target="_blank" class="action-button" title="Live Options Chart">
+                                <a *ngIf="alert.liveOptionChartUrl" (click)="redirectToExternalUrl(alert.liveOptionChartUrl)" class="action-button" title="Live Options Chart">
                                     <i class="fas fa-chart-line"></i> Options
                                 </a>
-                                <a *ngIf="alert.futChartUrl" [href]="alert.futChartUrl" target="_blank" class="action-button" title="Futures Chart">
+                                <a *ngIf="alert.futChartUrl" (click)="redirectToExternalUrl(alert.futChartUrl)" class="action-button" title="Futures Chart">
                                     <i class="fas fa-chart-line"></i> Futures
                                 </a>
-                                <a *ngIf="alert.equityChartUrl" [href]="alert.equityChartUrl" target="_blank" class="action-button" title="Equity Chart">
+                                <a *ngIf="alert.equityChartUrl" (click)="redirectToExternalUrl(alert.equityChartUrl)" class="action-button" title="Equity Chart">
                                     <i class="fas fa-chart-line"></i> Equity
                                 </a>
-                                <a *ngIf="alert.newsUrl" [href]="alert.newsUrl" target="_blank" class="action-button" title="View News">
+                                <a *ngIf="alert.newsUrl" (click)="redirectToExternalUrl(alert.newsUrl)" class="action-button" title="View News">
                                     <i class="far fa-newspaper"></i> News
                                 </a>
-                                <a *ngIf="alert.oiUrl" [href]="alert.oiUrl" target="_blank" class="action-button" title="Open Interest">
+                                <a *ngIf="alert.oiUrl" (click)="redirectToExternalUrl(alert.oiUrl)" class="action-button" title="Open Interest">
                                     <i class="fas fa-chart-bar"></i> OI
                                 </a>
                             </div>
@@ -367,19 +368,19 @@
                             <td class="actions-cell">
                                 <div class="table-actions">
                                    
-                                    <a *ngIf="alert.liveOptionChartUrl" [href]="alert.liveOptionChartUrl" target="_blank" class="action-button" title="Live Options Chart">
+                                    <a *ngIf="alert.liveOptionChartUrl" (click)="redirectToExternalUrl(alert.liveOptionChartUrl)"  class="action-button" title="Live Options Chart">
                                         <i class="fas fa-chart-line"></i> Options
                                     </a>
-                                    <a *ngIf="alert.futChartUrl" [href]="alert.futChartUrl" target="_blank" class="action-button" title="Futures Chart">
+                                    <a *ngIf="alert.futChartUrl" (click)="redirectToExternalUrl(alert.futChartUrl)" class="action-button" title="Futures Chart">
                                         <i class="fas fa-chart-line"></i> Futures
                                     </a>
-                                    <a *ngIf="alert.equityChartUrl" [href]="alert.equityChartUrl" target="_blank" class="action-button" title="Equity Chart">
+                                    <a *ngIf="alert.equityChartUrl" (click)="redirectToExternalUrl(alert.equityChartUrl)" class="action-button" title="Equity Chart">
                                         <i class="fas fa-chart-line"></i> Equity
                                     </a>
-                                    <a *ngIf="alert.newsUrl" [href]="alert.newsUrl" target="_blank" class="action-button" title="View News">
+                                    <a *ngIf="alert.newsUrl" (click)="redirectToExternalUrl(alert.newsUrl)" class="action-button" title="View News">
                                         <i class="far fa-newspaper"></i> News
                                     </a>
-                                    <a *ngIf="alert.oiUrl" [href]="alert.oiUrl" target="_blank" class="action-button" title="Open Interest">
+                                    <a *ngIf="alert.oiUrl" (click)="redirectToExternalUrl(alert.oiUrl)" class="action-button" title="Open Interest">
                                         <i class="fas fa-chart-bar"></i> OI
                                     </a>
                                 </div>
@@ -408,4 +409,12 @@
             </ng-template>
         </div>
     </div>
+  </div>
+  <div class="ad-container">
+    <!-- Google AdSense Ad Unit -->
+    <div class="ad-unit">
+      <!-- AdSense Ad Code will go here -->
+      <div class="ad-placeholder">Advertisement</div>
+    </div>
+  </div>
 </div>
