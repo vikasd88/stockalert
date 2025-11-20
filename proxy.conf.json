@@ -1,17 +1,35 @@
 {
-  "/api": {
-    "target": "https://stockalert-ig.gemsbok-mamba.ts.net",
-    "secure": true,
+  "/api/paid": {
+    "target": "https://stockalert-dev.gemsbok-mamba.ts.net/api/alerts/paid",
+    "secure": false,
     "changeOrigin": true,
     "logLevel": "debug",
     "pathRewrite": {
-      "^/api": ""
+      "^/api/paid": ""
+    },
+    "headers": {
+      "Connection": "keep-alive"
     }
   },
+  "/api/free": {
+    "target": "https://stockalert-dev.gemsbok-mamba.ts.net/api/alerts/free",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/api/free": ""
+    }
+  },
+  "/api": {
+    "target": "https://stockalert-dev.gemsbok-mamba.ts.net",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
   "/ws": {
-    "target": "wss://stockalert-ig.gemsbok-mamba.ts.net",
+    "target": "wss://stockalert-dev.gemsbok-mamba.ts.net/ws",
     "ws": true,
-    "secure": true,
+    "secure": false,
     "changeOrigin": true,
     "logLevel": "debug"
   }

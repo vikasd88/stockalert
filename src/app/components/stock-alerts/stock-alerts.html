@@ -102,7 +102,6 @@
                                 {{ col.label }}
                             </th>
                         </ng-container>
-                        <th class="actions-header">Actions</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -177,33 +176,12 @@
 
                                 <!-- Default case for any other columns -->
                                 <span *ngSwitchDefault>
-                    {{ alert[col.key] }}
-                  </span>
+                                    {{ alert[col.key] }}
+                                </span>
                             </ng-container>
                         </td>
                     </ng-container>
-
-                    <!-- Actions Column -->
-                    <td class="actions-cell">
-                        <div class="table-actions">
-                           
-                            <a *ngIf="alert.liveOptionChartUrl" (click)="redirectToExternalUrl(alert.liveOptionChartUrl)" class="action-button" title="Live Options Chart">
-                                <i class="fas fa-chart-line"></i> Options
-                            </a>
-                            <a *ngIf="alert.futChartUrl" (click)="redirectToExternalUrl(alert.futChartUrl)" class="action-button" title="Futures Chart">
-                                <i class="fas fa-chart-line"></i> Futures
-                            </a>
-                            <a *ngIf="alert.equityChartUrl" (click)="redirectToExternalUrl(alert.equityChartUrl)" class="action-button" title="Equity Chart">
-                                <i class="fas fa-chart-line"></i> Equity
-                            </a>
-                            <a *ngIf="alert.newsUrl" (click)="redirectToExternalUrl(alert.newsUrl)" class="action-button" title="View News">
-                                <i class="far fa-newspaper"></i> News
-                            </a>
-                            <a *ngIf="alert.oiUrl" (click)="redirectToExternalUrl(alert.oiUrl)" class="action-button" title="Open Interest">
-                                <i class="fas fa-chart-bar"></i> OI
-                            </a>
-                        </div>
-                    </td>
+                    <!-- Actions Column Removed - Now shown on symbol hover -->
                 </tr>
                 </tbody>
             </table>
@@ -218,12 +196,15 @@
 
         <!-- Free Alerts Table -->
         <div class="alerts-section" *ngIf="activeTab === 'free'">
+            <!-- Initial loading indicator -->
             <div *ngIf="loading.free && !freeAlerts.length" class="loading">
                 <div class="loading-indicator">
                     <div class="spinner"></div>
                     <span>Loading free alerts...</span>
                 </div>
             </div>
+            
+            <!-- Loading more indicator removed for infinite scrolling -->
 
             <div *ngIf="error" class="error-message">
                 {{ error }}
@@ -231,7 +212,7 @@
             </div>
 
             <div *ngIf="!loading.free && !error" class="alerts-content">
-                <div class="table-responsive" *ngIf="freeAlerts.length > 0; else noFreeAlerts">
+                <div class="table-responsive" *ngIf="freeAlerts.length > 0; else noFreeAlerts" (scroll)="onTableScroll($event, 'free')">
                     <table class="alerts-table">
                         <colgroup>
                             <ng-container *ngFor="let col of visibleColumns">
@@ -269,20 +250,33 @@
                             </ng-container>
                             <td class="actions-cell">
                                 <div class="table-actions">
-                                   
-                                    <a *ngIf="alert.liveOptionChartUrl" (click)="redirectToExternalUrl(alert.liveOptionChartUrl)" class="action-button" title="Live Options Chart">
+                                    <button class="action-button chart-btn" (click)="openChart(alert)" title="View Chart">
+                                        <i class="fas fa-chart-line"></i>
+                                    </button>
+                                    <button class="action-button screener-btn" (click)="openScreener(alert)" title="View in Screener">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                    <button class="action-button option-chain-btn" (click)="openOptionChain(alert)" title="View Option Chain">
+                                        <i class="fas fa-link"></i>
+                                    </button>
+                                    <button class="action-button watchlist-btn" (click)="addToWatchlist(alert)" title="Add to Watchlist">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+
+                                    <!-- Legacy buttons - hidden by default, shown only if no other actions are available -->
+                                    <a *ngIf="alert.liveOptionChartUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.liveOptionChartUrl)" class="action-button legacy" title="Live Options Chart">
                                         <i class="fas fa-chart-line"></i> Options
                                     </a>
-                                    <a *ngIf="alert.futChartUrl" (click)="redirectToExternalUrl(alert.futChartUrl)" class="action-button" title="Futures Chart">
+                                    <a *ngIf="alert.futChartUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.futChartUrl)" class="action-button legacy" title="Futures Chart">
                                         <i class="fas fa-chart-line"></i> Futures
                                     </a>
-                                    <a *ngIf="alert.equityChartUrl" (click)="redirectToExternalUrl(alert.equityChartUrl)" class="action-button" title="Equity Chart">
+                                    <a *ngIf="alert.equityChartUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.equityChartUrl)" class="action-button legacy" title="Equity Chart">
                                         <i class="fas fa-chart-line"></i> Equity
                                     </a>
-                                    <a *ngIf="alert.newsUrl" (click)="redirectToExternalUrl(alert.newsUrl)" class="action-button" title="View News">
+                                    <a *ngIf="alert.newsUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.newsUrl)" class="action-button legacy" title="View News">
                                         <i class="far fa-newspaper"></i> News
                                     </a>
-                                    <a *ngIf="alert.oiUrl" (click)="redirectToExternalUrl(alert.oiUrl)" class="action-button" title="Open Interest">
+                                    <a *ngIf="alert.oiUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.oiUrl)" class="action-button" title="Open Interest">
                                         <i class="fas fa-chart-bar"></i> OI
                                     </a>
                                 </div>
@@ -308,12 +302,14 @@
                         <p>No free alerts available at the moment</p>
                         <p class="hint">Check back later for new alerts</p>
                     </div>
+                    <div *ngIf="freeAlerts.length > 0 && hasMore && !loading.free" class="load-more-trigger"></div>
                 </ng-template>
             </div>
         </div>
 
         <!-- Premium Alerts Table -->
         <div class="alerts-section" *ngIf="activeTab === 'premium'">
+            <!-- Initial loading indicator -->
             <div *ngIf="loading.paid && (!paidAlerts || paidAlerts.length === 0)" class="loading">
                 <div class="loading-indicator">
                     <div class="spinner"></div>
@@ -321,13 +317,15 @@
                 </div>
             </div>
 
+            <!-- Loading more indicator removed for infinite scrolling -->
+
             <div *ngIf="error" class="error-message">
                 {{ error }}
                 <button (click)="loadPaidAlerts()" class="retry-button">Retry</button>
             </div>
 
             <div *ngIf="isPaidUser && !loading.paid" class="alerts-content">
-                <div class="table-responsive" *ngIf="paidAlerts && paidAlerts.length > 0; else noPremiumAlerts">
+                <div class="table-responsive" *ngIf="paidAlerts && paidAlerts.length > 0; else noPremiumAlerts" (scroll)="onTableScroll($event, 'premium')">
                     <table class="alerts-table premium-table">
                         <colgroup>
                             <ng-container *ngFor="let col of visibleColumns">
@@ -342,20 +340,50 @@
                                         {{ col.label }}
                                     </th>
                                 </ng-container>
-                                <th class="actions-header">Actions</th>
+
                             </tr>
                         </thead>
                         <tbody>
-                            <tr *ngFor="let alert of paidAlerts" [class.highlight-row]="isNewAlert(alert)">
+                            <tr
+                                *ngFor="let alert of paidAlerts; let i = index"
+                                [class.highlight-row]="isNewAlert(alert)"
+                                (mouseenter)="onRowMouseEnter(i)"
+                                (mouseleave)="onRowMouseLeave()"
+                                [class.row-hover]="isRowHovered(i)">
                                 <ng-container *ngFor="let col of visibleColumns">
-                                    <td
-                                            *ngIf="col.key !== 'actions'"
-                                            [class]="col.key + '-cell'"
-                                            [class.positive]="(col.key === 'change' || col.key === 'percentChange') && (col.key === 'percentChange' ? (alert.percentChange || 0) >= 0 : (alert['change'] || 0) >= 0)"
-                                            [class.negative]="(col.key === 'change' || col.key === 'percentChange') && (col.key === 'percentChange' ? (alert.percentChange || 0) < 0 : (alert['change'] || 0) < 0)"
-                                    >
+                                    <td *ngIf="col.key !== 'actions'"
+                                        [class]="col.key + '-cell'"
+                                        [class.positive]="(col.key === 'change' || col.key === 'percentChange') && (col.key === 'percentChange' ? (alert.percentChange || 0) >= 0 : (alert['change'] || 0) >= 0)"
+                                        [class.negative]="(col.key === 'change' || col.key === 'percentChange') && (col.key === 'percentChange' ? (alert.percentChange || 0) < 0 : (alert['change'] || 0) < 0)"
+                                        [class.symbol-cell]="col.key === 'symbol'"
+                                        [class.actions-hover]="col.key === 'symbol'">
                                         <ng-container [ngSwitch]="col.key">
                                             <span *ngSwitchCase="'exchangeTime'">{{ alert[col.key] | date:'mediumTime' }}</span>
+                                            <div *ngSwitchCase="'symbol'" class="symbol-cell">
+                                                <span class="symbol-text">{{alert.id}}{{ alert.symbol }}</span>
+                                                <div class="action-buttons">
+                                                    <!-- Live Options Chart -->
+                                                    <a *ngIf="alert.liveOptionChartUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.liveOptionChartUrl)" class="action-button" title="Live Options Chart">
+                                                        <i class="fas fa-chart-line"></i>
+                                                    </a>
+                                                    <!-- Futures Chart -->
+                                                    <a *ngIf="alert.futChartUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.futChartUrl)" class="action-button" title="Futures Chart">
+                                                        <i class="fas fa-arrow-trend-up"></i>
+                                                    </a>
+                                                    <!-- Equity Chart -->
+                                                    <a *ngIf="alert.equityChartUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.equityChartUrl)" class="action-button" title="Equity Chart">
+                                                        <i class="fas fa-chart-column"></i>
+                                                    </a>
+                                                    <!-- News -->
+                                                    <a *ngIf="alert.newsUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.newsUrl)" class="action-button" title="News">
+                                                        <i class="far fa-newspaper"></i>
+                                                    </a>
+                                                    <!-- Open Interest -->
+                                                    <a *ngIf="alert.oiUrl" (click)="$event.stopPropagation(); redirectToExternalUrl(alert.oiUrl)" class="action-button" title="Open Interest">
+                                                        <i class="fas fa-chart-pie"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
                                             <span *ngSwitchCase="'percentChange'" [class.positive]="(alert.percentChange || 0) >= 0" [class.negative]="(alert.percentChange || 0) < 0">
                                                 {{ alert.percentChange | number:'1.2-2' }}%
                                             </span>
@@ -363,26 +391,7 @@
                                         </ng-container>
                                     </td>
                                 </ng-container>
-                                <td class="actions-cell">
-                                    <div class="table-actions">
-                                       
-                                        <a *ngIf="alert.liveOptionChartUrl" (click)="redirectToExternalUrl(alert.liveOptionChartUrl)"  class="action-button" title="Live Options Chart">
-                                            <i class="fas fa-chart-line"></i> Options
-                                        </a>
-                                        <a *ngIf="alert.futChartUrl" (click)="redirectToExternalUrl(alert.futChartUrl)" class="action-button" title="Futures Chart">
-                                            <i class="fas fa-chart-line"></i> Futures
-                                        </a>
-                                        <a *ngIf="alert.equityChartUrl" (click)="redirectToExternalUrl(alert.equityChartUrl)" class="action-button" title="Equity Chart">
-                                            <i class="fas fa-chart-line"></i> Equity
-                                        </a>
-                                        <a *ngIf="alert.newsUrl" (click)="redirectToExternalUrl(alert.newsUrl)" class="action-button" title="View News">
-                                            <i class="far fa-newspaper"></i> News
-                                        </a>
-                                        <a *ngIf="alert.oiUrl" (click)="redirectToExternalUrl(alert.oiUrl)" class="action-button" title="Open Interest">
-                                            <i class="fas fa-chart-bar"></i> OI
-                                        </a>
-                                    </div>
-                                </td>
+                                <!-- Removed actions column -->
                             </tr>
                         </tbody>
                     </table>
@@ -404,6 +413,7 @@
                         <p>No premium alerts available at the moment</p>
                         <p class="hint">Check back later for new alerts</p>
                     </div>
+                    <div *ngIf="paidAlerts && paidAlerts.length > 0 && hasMore && !loading.paid" class="load-more-trigger"></div>
                 </ng-template>
             </div>
         </div>
@@ -423,3 +433,5 @@
         </div>
       </div>
   </div>
+  </div>
+</div>

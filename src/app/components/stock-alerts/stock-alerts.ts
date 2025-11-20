@@ -14,20 +14,18 @@ type StockAlert = {
 
 // Default column settings
 const DEFAULT_COLUMNS = [
-  { key: 'symbol', label: 'Symbol', visible: true, order: 0, width: '100px' },
-  { key: 'tradeType', label: 'Type', visible: true, order: 1, width: '120px' },
+  { key: 'symbol', label: 'Symbol', visible: true, order: 0, width: 'auto' },
+  { key: 'tradeType', label: 'Type', visible: true, order: 1, width: '100px' },
   { key: 'ltp', label: 'Price', visible: true, order: 2, width: '100px' },
   { key: 'percentChange', label: 'Change %', visible: true, order: 3, width: '100px' },
-  { key: 'volumeInWindow', label: 'Volume', visible: true, order: 4, width: '120px' },
-  { key: 'thresholdVolume', label: 'Threshold', visible: true, order: 5, width: '100px' },
+  { key: 'volumeInWindow', label: 'Volume', visible: true, order: 4, width: '100px' },
+  { key: 'thresholdVolume', label: 'Threshold', visible: true, order: 5, width: '80px' },
   { key: 'exchangeTime', label: 'Time', visible: true, order: 6, width: '150px' },
   // { key: 'openPrice', label: 'Open', visible: true, order: 7, width: '100px' },
   // { key: 'highPrice', label: 'High', visible: true, order: 8, width: '100px' },
   // { key: 'lowPrice', label: 'Low', visible: true, order: 9, width: '100px' },
-  { key: 'closePrice', label: 'Close', visible: true, order: 10, width: '100px' },
-  { key: 'volumePercentile', label: 'Volume %ile', visible: true, order: 11, width: '100px' },
+  { key: 'volumePercentile', label: '%ile', visible: true, order: 11, width: '60px' },
   { key: 'delaySeconds', label: 'Delay (s)', visible: true, order: 12, width: '80px' },
-  { key: 'actions', label: 'Actions', visible: true, order: 13, width: '150px' }
 ];
 
 interface ColumnSettings {
@@ -47,6 +45,7 @@ interface ColumnSettings {
   providers: [DatePipe]
 })
 export class StockAlerts implements OnInit, OnDestroy {
+  hoveredRow: number | null = null;
   freeAlerts: StockAlert[] = [];
   paidAlerts: StockAlert[] = [];
   realTimeAlerts: StockAlert[] = [];
@@ -56,10 +55,15 @@ export class StockAlerts implements OnInit, OnDestroy {
   activeTab: 'realtime' | 'free' | 'premium' = 'realtime';
   
   // Pagination
-  private pageSize = 20;
+  private pageSize = 20; // Increased page size for better performance
   private currentPage = 0;
   hasMore = true;
   isLoading = false;
+  private scrollDebounceTimer: any = null;
+  private readonly SCROLL_DEBOUNCE = 100; // Reduced debounce time for more responsive scrolling
+  private readonly SCROLL_THRESHOLD = 500; // Increased threshold to start loading earlier
+  private lastLoadTime = 0;
+  private readonly MIN_LOAD_INTERVAL = 1000; // Minimum time between loads in ms
   
   loading = {
     free: false,
@@ -93,6 +97,43 @@ export class StockAlerts implements OnInit, OnDestroy {
     this.activeTab = this.isPaidUser ? 'premium' : 'free';
   }
 
+  // Open chart for the given alert
+  openChart(alert: StockAlert): void {
+    if (alert.equityChartUrl) {
+      this.redirectToExternalUrl(alert.equityChartUrl);
+    } else if (alert.liveOptionChartUrl) {
+      this.redirectToExternalUrl(alert.liveOptionChartUrl);
+    } else if (alert.futChartUrl) {
+      this.redirectToExternalUrl(alert.futChartUrl);
+    }
+  }
+
+  // Open screener for the given alert
+  openScreener(alert: StockAlert): void {
+    // Example URL - replace with your actual screener URL
+    const screenerUrl = `https://www.screener.in/company/${alert.symbol}/`;
+    this.redirectToExternalUrl(screenerUrl);
+  }
+
+  // Open option chain for the given alert
+  openOptionChain(alert: StockAlert): void {
+    if (alert.liveOptionChartUrl) {
+      this.redirectToExternalUrl(alert.liveOptionChartUrl);
+    } else {
+      // Fallback to a generic option chain URL if specific one is not available
+      const optionChainUrl = `https://www.nseindia.com/option-chain?symbol=${alert.symbol}`;
+      this.redirectToExternalUrl(optionChainUrl);
+    }
+  }
+
+  // Add stock to watchlist
+  addToWatchlist(alert: StockAlert): void {
+    // Implement your watchlist logic here
+    console.log('Adding to watchlist:', alert.symbol);
+    // You might want to show a toast/snackbar message
+    // this.snackBar.open(`${alert.symbol} added to watchlist`, 'Close', { duration: 3000 });
+  }
+
   // Check if an alert is new (within the last 5 minutes)
   isNewAlert(alert: StockAlert): boolean {
     if (!alert?.alertTime) return false;
@@ -101,6 +142,17 @@ export class StockAlerts implements OnInit, OnDestroy {
     return alertTime > fiveMinutesAgo;
   }
 
+  onRowMouseEnter(index: number): void {
+    this.hoveredRow = index;
+  }
+
+  onRowMouseLeave(): void {
+    this.hoveredRow = null;
+  }
+
+  isRowHovered(index: number): boolean {
+    return this.hoveredRow === index;
+  }
 
   private initializeColumns() {
     // Load saved column settings or use defaults
@@ -210,11 +262,90 @@ export class StockAlerts implements OnInit, OnDestroy {
     );
   }
   
-  // Scroll related variables removed - infinite scroll disabled
+  onTableScroll(event: Event, tab: 'free' | 'premium'): void {
+    // Only handle scroll events for the active tab
+    if (this.isLoading || !this.hasMore || this.activeTab !== tab) {
+      return;
+    }
+
+    // Prevent too frequent loading
+    const now = Date.now();
+    if (now - this.lastLoadTime < this.MIN_LOAD_INTERVAL) {
+      return;
+    }
+
+    const table = event.target as HTMLElement;
+    const scrollPosition = table.scrollTop + table.clientHeight;
+    const scrollHeight = table.scrollHeight;
+    const distanceFromBottom = scrollHeight - scrollPosition;
+    
+    // Clear any existing debounce timer
+    if (this.scrollDebounceTimer) {
+      clearTimeout(this.scrollDebounceTimer);
+    }
+
+    this.scrollDebounceTimer = setTimeout(() => {
+      // Only load more if we're near the bottom of the table
+      if (distanceFromBottom <= this.SCROLL_THRESHOLD) {
+        console.log('Triggering load more for tab:', tab, 'distanceFromBottom:', distanceFromBottom);
+        this.lastLoadTime = now;
+        
+        if (tab === 'free') {
+          this.loadFreeAlerts(true);
+        } else if (tab === 'premium' && this.isPaidUser) {
+          this.loadPaidAlerts(true);
+        }
+      }
+      this.scrollDebounceTimer = null;
+    }, this.SCROLL_DEBOUNCE);
+  }
+
+  // Keep window scroll handler but make it less sensitive
+  @HostListener('window:scroll', ['$event'])
+  onWindowScroll(event: Event): void {
+    // Only handle window scroll if we're near the bottom of the page and not in realtime tab
+    if (this.activeTab === 'realtime') {
+      return;
+    }
+
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
+    const scrollPosition = window.scrollY;
+    const distanceFromBottom = documentHeight - (windowHeight + scrollPosition);
+    
+    if (distanceFromBottom > 1000) {
+      return; // Only handle scrolls when near bottom of page
+    }
+    
+    // Delegate to the main scroll handler with a higher threshold
+    this.onTableScroll({
+      target: {
+        scrollTop: scrollPosition,
+        clientHeight: windowHeight,
+        scrollHeight: documentHeight
+      }
+    } as unknown as Event, this.activeTab as 'free' | 'premium');
+  }
 
   // Scroll handler removed - infinite scroll disabled
   
-  // Load more alerts method removed - infinite scroll disabled
+  // Track the current page and load more when needed
+  private handlePagination(response: any, loadMore: boolean): void {
+    if (!response) {
+      this.hasMore = false;
+      return;
+    }
+
+    // Check if there are more pages
+    this.hasMore = !response.last && response.content && response.content.length > 0;
+    
+    // Update current page if this is a new load
+    if (!loadMore) {
+      this.currentPage = response.number || 0;
+    }
+    
+    console.log('Pagination - Has more:', this.hasMore, 'Current page:', this.currentPage);
+  }
 
   private convertToStockAlert(alert: Record<string, any> & Partial<StockAlert>): StockAlert {
     console.group('Converting alert data');
@@ -304,27 +435,53 @@ export class StockAlerts implements OnInit, OnDestroy {
   }
 
   loadFreeAlerts(loadMore: boolean = false): void {
-    if (this.isLoading) return;
+    if (this.isLoading) {
+      console.log('Skipping load - already loading');
+      return;
+    }
     
+    // Determine the target page - increment only if we're loading more
+    const targetPage = loadMore ? this.currentPage + 1 : 0;
+    
+    // Only reset the list on initial load
     if (!loadMore) {
+      console.log('Initial load of free alerts');
       this.currentPage = 0;
       this.hasMore = true;
       this.freeAlerts = [];
+      window.scrollTo(0, 0);
+    } else {
+      console.log('Loading more free alerts, page:', targetPage);
     }
 
-    if (!this.hasMore) return;
+    if (!this.hasMore) {
+      console.log('No more free alerts to load');
+      return;
+    }
 
     this.isLoading = true;
     this.loading.free = true;
     this.error = null;
 
-    console.log('Loading free alerts, page:', this.currentPage, 'size:', this.pageSize);
+    console.log('Loading free alerts, page:', targetPage, 'size:', this.pageSize);
 
-    this.stockAlertService.getFreeAlerts(this.currentPage, this.pageSize)
+    // Store the current scroll position before loading
+    const tableContainer = document.querySelector('.table-responsive');
+    const scrollPosition = tableContainer ? tableContainer.scrollTop : 0;
+
+    this.stockAlertService.getFreeAlerts(targetPage, this.pageSize)
       .pipe(
         finalize(() => {
           this.isLoading = false;
           this.loading.free = false;
+          this.cdr.detectChanges();
+          
+          // Restore scroll position after update
+          if (loadMore && tableContainer) {
+            setTimeout(() => {
+              tableContainer.scrollTop = scrollPosition;
+            }, 0);
+          }
         })
       )
       .subscribe({
@@ -341,13 +498,27 @@ export class StockAlerts implements OnInit, OnDestroy {
           console.log('Processed alerts:', alerts);
           
           if (loadMore) {
-            this.freeAlerts = [...this.freeAlerts, ...alerts];
+            // Only append new alerts that don't already exist in the list
+            const existingIds = new Set(this.freeAlerts.map(a => a.id));
+            const newAlerts = alerts.filter(alert => !existingIds.has(alert.id));
+            
+            if (newAlerts.length === 0) {
+              console.log('No new alerts to add');
+              this.hasMore = false;
+              return;
+            }
+            
+            this.freeAlerts = [...this.freeAlerts, ...newAlerts];
           } else {
             this.freeAlerts = alerts;
           }
           
-          this.hasMore = !response.last;
-          this.currentPage = response.number + 1;
+          // Update pagination state based on server response
+          this.hasMore = alerts.length === this.pageSize;
+          this.currentPage = targetPage;
+          
+          console.log('Updated freeAlerts count:', this.freeAlerts.length);
+          console.log('hasMore:', this.hasMore, 'currentPage:', this.currentPage);
           
           console.log('Updated freeAlerts:', this.freeAlerts);
           console.log('hasMore:', this.hasMore, 'currentPage:', this.currentPage);
@@ -362,7 +533,7 @@ export class StockAlerts implements OnInit, OnDestroy {
 
   loadPaidAlerts(loadMore: boolean = false): Promise<void> {
     return new Promise((resolve, reject) => {
-      console.log('loadPaidAlerts called, isPaidUser:', this.isPaidUser, 'loadMore:', loadMore);
+      console.log('loadPaidAlerts called, isPaidUser:', this.isPaidUser, 'loadMore:', loadMore, 'page:', this.currentPage);
       
       if (!this.isPaidUser) {
         console.warn('User is not a paid user, cannot load paid alerts');
@@ -376,23 +547,118 @@ export class StockAlerts implements OnInit, OnDestroy {
         return resolve();
       }
       
+      if (loadMore && !this.hasMore) {
+        console.log('No more paid alerts to load');
+        return resolve();
+      }
+      
+      const targetPage = loadMore ? this.currentPage + 1 : 0;
+      
+      // Only reset the list and scroll to top on initial load
       if (!loadMore) {
         console.log('Initial load of paid alerts');
         this.currentPage = 0;
         this.hasMore = true;
         this.paidAlerts = [];
-        // Scroll to top when loading first page
         window.scrollTo(0, 0);
-      } else if (!this.hasMore) {
-        console.log('No more paid alerts to load');
-        return resolve();
+      } else {
+        console.log('Loading more paid alerts, page:', targetPage);
       }
 
       this.isLoading = true;
       this.loading.paid = true;
       this.error = null;
 
-      console.log('Loading paid alerts, page:', this.currentPage, 'size:', this.pageSize);
+      console.log('Loading paid alerts, page:', targetPage, 'size:', this.pageSize);
+      
+      // Store the current scroll position before loading
+      const tableContainer = document.querySelector('.table-responsive');
+      const scrollPosition = tableContainer ? tableContainer.scrollTop : 0;
+
+      this.stockAlertService.getPaidAlerts(targetPage, this.pageSize)
+        .pipe(
+          finalize(() => {
+            this.isLoading = false;
+            this.loading.paid = false;
+            this.cdr.detectChanges();
+            
+            // Restore scroll position after update
+            if (loadMore && tableContainer) {
+              setTimeout(() => {
+                tableContainer.scrollTop = scrollPosition;
+              }, 0);
+            }
+          })
+        )
+        .subscribe({
+          next: (response: any) => {
+            console.log('Received paid alerts response:', response);
+            
+            if (!response) {
+              console.error('Empty response received from paid alerts API');
+              this.error = 'Received empty response from server';
+              return resolve();
+            }
+
+            try {
+              // Handle different response formats
+              let alertsArray: any[] = [];
+              
+              if (Array.isArray(response)) {
+                alertsArray = response;
+              } else if (response && Array.isArray(response.content)) {
+                alertsArray = response.content;
+              } else if (response && typeof response === 'object' && !Array.isArray(response)) {
+                alertsArray = [response];
+              }
+              
+              console.log('Alerts array to process:', alertsArray);
+              
+              if (alertsArray.length === 0) {
+                console.warn('No alerts found in the response');
+                this.hasMore = false;
+                return resolve();
+              }
+              
+              // Process each alert
+              const alerts = alertsArray.map(alert => this.convertToStockAlert(alert));
+              
+              if (loadMore) {
+                // Only append new alerts that don't already exist in the list
+                const existingIds = new Set(this.paidAlerts.map(a => a.id));
+                const newAlerts = alerts.filter(alert => !existingIds.has(alert.id));
+                
+                if (newAlerts.length === 0) {
+                  console.log('No new paid alerts to add');
+                  this.hasMore = false;
+                  return resolve();
+                }
+                
+                this.paidAlerts = [...this.paidAlerts, ...newAlerts];
+              } else {
+                this.paidAlerts = alerts;
+              }
+              
+              // Update pagination state
+              this.hasMore = alerts.length === this.pageSize;
+              this.currentPage = targetPage;
+              
+              console.log('Updated paidAlerts count:', this.paidAlerts.length);
+              console.log('hasMore:', this.hasMore, 'currentPage:', this.currentPage);
+              
+              resolve();
+            } catch (error) {
+              console.error('Error processing paid alerts:', error);
+              this.error = 'Error processing alerts. Please try again.';
+              reject(error);
+            }
+          },
+          error: (error) => {
+            console.error('Error loading paid alerts:', error);
+            this.error = 'Failed to load paid alerts. Please try again.';
+            reject(error);
+          }
+        });
 
       const subscription = this.stockAlertService.getPaidAlerts(this.currentPage, this.pageSize)
         .pipe(

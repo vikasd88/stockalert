@@ -221,7 +221,7 @@ div.stock-alerts-container {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 10px;
   color: #333;
   background-color: #f5f7fa;
   min-height: 100vh;
@@ -623,23 +623,29 @@ div.stock-alerts-container {
     }
   }
 
-  .alerts-section {
+  .alerts-content {
     margin-top: 16px;
     background: white;
     border-radius: 12px;
-    padding: 20px;
+    padding: 0;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
   }
 
   /* Table Styles */
   .table-responsive {
-    width: 100%;
+    overflow-y: auto;
     overflow-x: auto;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     background: white;
-    margin-bottom: 20px;
-    max-height: calc(100vh - 250px);
+    max-height: calc(100vh - 200px);
+    display: flex;
+    flex-direction: column;
+    
+    /* Custom scrollbar for Webkit browsers */
     &::-webkit-scrollbar {
       height: 8px;
       width: 8px;
@@ -732,7 +738,7 @@ div.stock-alerts-container {
       overflow: hidden;
       text-overflow: ellipsis;
       
-      &.symbol-cell { width: 120px; }
+      &.symbol-cell { width: auto; }
       &.type-cell { width: 100px; }
       &.price-cell { width: 90px; text-align: right; }
       &.change-cell { width: 90px; text-align: right; }
@@ -855,33 +861,202 @@ div.stock-alerts-container {
       }
     }
     
-    .actions-cell {
-      width: 100px;
-      text-align: center;
+    // Symbol cell with hover effect
+    .symbol-cell {
+      position: relative;
+      padding: 4px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      min-height: 40px;
       
-      .table-actions {
-        display: flex;
-        justify-content: center;
-        gap: 8px;
+      .symbol-text {
+        font-weight: 500;
+        color: #3b82f6;
+        cursor: pointer;
+        padding: 2px 4px;
+        border-radius: 3px;
+        transition: all 0.2s;
+        white-space: nowrap;
         
-        .action-btn {
-          color: #4b5563;
-          background: none;
-          border: none;
-          cursor: pointer;
-          padding: 4px;
+        &:hover {
+          background-color: #f0f5ff;
+        }
+      }
+      
+      .action-buttons {
+        display: none;
+        position: relative;
+        background: transparent;
+        border: none;
+        padding: 4px 0 0 0;
+        margin: 0;
+        box-shadow: none;
+        z-index: 10;
+        min-width: auto;
+        flex-wrap: wrap;
+        gap: 4px;
+        
+        .action-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+          border: 1px solid #e2e8f0;
           border-radius: 4px;
-          transition: all 0.2s ease;
+          background: #f8fafc;
+          color: #4b5563;
+          cursor: pointer;
+          margin: 0;
+          padding: 0;
+          transition: all 0.2s;
           
           &:hover {
-            background-color: #f3f4f6;
-            color: #111827;
+            background: #e2e8f0;
+            transform: translateY(-1px);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
           }
           
           i {
-            font-size: 1.1rem;
+            font-size: 12px;
+          }
+          
+          // Color variations for different button types
+          &.chart-btn { color: #3b82f6; }
+          &.screener-btn { color: #10b981; }
+          &.option-chain-btn { color: #8b5cf6; }
+          &.watchlist-btn { color: #f59e0b; }
+          
+          // Native tooltip will be used
+        }
+      }
+      
+      &:hover .table-actions {
+        display: inline-flex;
+      }
+      
+      .symbol-text {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 3px;
+        transition: all 0.2s ease;
+      }
+      
+      .action-buttons {
+        position: absolute;
+        top: 50%;
+        left: 5%;
+        transform: translateY(-50%);
+        display: none;
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        padding: 4px 6px;
+        z-index: 10;
+        white-space: nowrap;
+        margin-left: 8px;
+        
+        .action-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+          border-radius: 3px;
+          background: #f8f9fa;
+          border: 1px solid #e0e0e0;
+          color: #555;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-decoration: none;
+          font-size: 12px;
+          
+          &:hover {
+            background: #e9ecef;
+            color: #333;
+          }
+          
+          i {
+            font-size: 12px;
           }
         }
+      }
+      
+      &:hover {
+        .symbol-text {
+          background-color: #f0f0f0;
+        }
+        
+        .action-buttons {
+          display: inline-flex;
+          gap: 4px;
+        }
+      }
+    }
+    
+    // Actions cell
+    // .actions-cell {
+    //   width: 150px;
+    //   padding: 8px 4px !important;
+    //   white-space: nowrap;
+    //   text-align: right;
+    //   position: relative;
+      
+    //   .action-buttons {
+    //     display: inline-flex;
+    //     gap: 6px;
+    //     background: white;
+    //     padding: 4px 8px;
+    //     border-radius: 4px;
+    //     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    //     position: relative;
+    //     z-index: 10;
+    //     border: 1px solid #e0e0e0;
+        
+    //     .action-button {
+    //       display: inline-flex;
+    //       align-items: center;
+    //       justify-content: center;
+    //       width: 26px;
+    //       height: 26px;
+    //       border-radius: 3px;
+    //       background: #f5f5f5;
+    //       border: 1px solid #e0e0e0;
+    //       color: #555;
+    //       cursor: pointer;
+    //       transition: all 0.2s ease;
+    //       text-decoration: none;
+          
+    //       &:hover {
+    //         background: #e0e0e0;
+    //         color: #333;
+    //         transform: translateY(-1px);
+    //         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    //       }
+          
+    //       i {
+    //         font-size: 12px;
+    //       }
+    //     }
+    //   }
+      
+    //   // Always show the action buttons
+    //   .action-buttons {
+    //     opacity: 1 !important;
+    //     visibility: visible !important;
+    //   }
+    // }
+    
+    // Row hover effect
+    tr:hover {
+      .symbol-cell .symbol-text {
+        background-color: #f0f0f0;
+      }
+      
+      .actions-cell .action-buttons {
+        opacity: 1;
       }
     }
     
@@ -1028,35 +1203,35 @@ div.stock-alerts-container {
       font-size: 13px;
     }
     
-    .actions-cell {
-      .table-actions {
-        display: flex;
-        gap: 8px;
+    // .actions-cell {
+    //   .table-actions {
+    //     display: flex;
+    //     gap: 8px;
         
-        .action-btn {
-          color: #5c6bc0;
-          background: none;
-          border: none;
-          width: 32px;
-          height: 32px;
-          border-radius: 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.2s ease;
+    //     .action-btn {
+    //       color: #5c6bc0;
+    //       background: none;
+    //       border: none;
+    //       width: 32px;
+    //       height: 32px;
+    //       border-radius: 4px;
+    //       display: flex;
+    //       align-items: center;
+    //       justify-content: center;
+    //       cursor: pointer;
+    //       transition: all 0.2s ease;
           
-          &:hover {
-            background-color: #e8eaf6;
-            color: #3949ab;
-          }
+    //       &:hover {
+    //         background-color: #e8eaf6;
+    //         color: #3949ab;
+    //       }
           
-          .icon {
-            font-size: 16px;
-          }
-        }
-      }
-    }
+    //       .icon {
+    //         font-size: 16px;
+    //       }
+    //     }
+    //   }
+    // }
     
     // Premium table specific styles
     &.premium-table {

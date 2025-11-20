@@ -33,8 +33,7 @@ export interface PaginatedResponse<T> {
   empty: boolean;
 }
 
-const API_BASE_URL = 'https://stockalert-ig.gemsbok-mamba.ts.net/api/alerts';
-const WS_URL = 'wss://stockalert-ig.gemsbok-mamba.ts.net/ws/alerts';
+// API URLs are now defined in the service class below
 
 // Add CORS headers
 const httpOptions = {
@@ -143,9 +142,9 @@ export class StockAlertService {
   // Track active subscriptions
   private static activeSubscriptions = 0;
 
-  // Using relative URLs that will be proxied
-  private readonly API_BASE_URL = 'https://stockalert-dev.gemsbok-mamba.ts.net/api/alerts';
-  private readonly WS_URL = 'wss://stockalert-dev.gemsbok-mamba.ts.net/ws/alerts';
+  // API base URLs
+  private readonly API_BASE_URL = '/api';  // Using relative path for proxy
+  private readonly WS_URL = '/ws';        // WebSocket relative path for proxy
   private pingInterval: any;
   private pingTimeout: any;
   private lastPingTime: number = 0;
@@ -195,27 +194,33 @@ export class StockAlertService {
     );
   }
 
-  getFreeAlerts(page: number = 0, size: number = 20, sort: string = 'alertTime,desc'): Observable<PaginatedResponse<StockAlert>> {
+  getFreeAlerts(page: number = 0, size: number = 10): Observable<PaginatedResponse<StockAlert>> {
     const params = new HttpParams()
       .set('page', page.toString())
-      .set('size', size.toString())
-      .set('sort', sort);
+      .set('size', size.toString());
 
-    return this.http.get<StockAlert[]>(
-      `${this.API_BASE_URL}/free`,
-      { 
-        ...httpOptions,
-        params,
-        headers: new HttpHeaders({
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        })
-      }
-    ).pipe(
-      map((alerts: StockAlert[]) => {
-        // Convert array response to PaginatedResponse format
-        const paginatedResponse: PaginatedResponse<StockAlert> = {
-          content: alerts,
+    const url = `${this.API_BASE_URL}/free`;
+    console.log('Fetching free alerts from:', url);
+    
+    return this.http.get<PaginatedResponse<StockAlert>>(url, {
+      headers: new HttpHeaders({
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }),
+      params,
+      withCredentials: true
+    }).pipe(
+      tap(response => {
+        console.log('Free alerts response received');
+        if (!response) {
+          throw new Error('Empty response received');
+        }
+      }),
+      catchError(error => {
+        console.error('Error in getFreeAlerts:', error);
+        // Return an empty response to prevent breaking the UI
+        const emptyResponse: PaginatedResponse<StockAlert> = {
+          content: [],
           pageable: {
             sort: { empty: true, sorted: false, unsorted: true },
             offset: page * size,
@@ -224,20 +229,19 @@ export class StockAlertService {
             paged: true,
             unpaged: false
           },
-          last: true, // Since we're getting all data at once
-          totalPages: 1, // Since we're getting all data at once
-          totalElements: alerts.length,
+          last: true,
+          totalPages: 0,
+          totalElements: 0,
           size: size,
           number: page,
           sort: { empty: true, sorted: false, unsorted: true },
           first: page === 0,
-          numberOfElements: alerts.length,
-          empty: alerts.length === 0
+          numberOfElements: 0,
+          empty: true
         };
-        return paginatedResponse;
+        return of(emptyResponse);
       }),
-      retry(2),
-      catchError(this.handleError)
+      retry(2)
     );
   }
 
@@ -251,7 +255,7 @@ export class StockAlertService {
 
     return this.http.get<any>(
       `${this.API_BASE_URL}/paid`,
-      { 
+      {
         ...httpOptions,
         params,
         headers: new HttpHeaders({
@@ -501,8 +505,8 @@ export class StockAlertService {
   private handlePing(timestamp?: number): void {
     if (StockAlertService.socket$ && !StockAlertService.socket$.closed) {
       try {
-        const pongMsg = { 
-          type: 'pong', 
+        const pongMsg = {
+          type: 'pong',
           timestamp: timestamp || Date.now(),
           serverTime: new Date().toISOString()
         };
@@ -606,6 +610,50 @@ export class StockAlertService {
   private handleError = (error: HttpErrorResponse | ErrorEvent | any): Observable<never> => {
     let errorMessage = 'An unexpected error occurred';
     let errorDetails: any = {};
+    
+    // Log the full error for debugging
+    console.error('API Error:', error);
+    
+    if (error instanceof HttpErrorResponse) {
+      // Server-side error
+      errorMessage = `Server returned code ${error.status}: ${error.statusText}`;
+      errorDetails = {
+        status: error.status,
+        message: error.message,
+        error: error.error
+      };
+      
+      // Handle specific HTTP error codes
+      if (error.status === 0) {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection.';
+      } else if (error.status === 401) {
+        errorMessage = 'Authentication required. Please log in again.';
+      } else if (error.status === 403) {
+        errorMessage = 'You do not have permission to access this resource.';
+      } else if (error.status === 404) {
+        errorMessage = 'The requested resource was not found.';
+      } else if (error.status >= 500) {
+        errorMessage = 'A server error occurred. Please try again later.';
+      }
+    } else if (error.error instanceof ErrorEvent) {
+      // Client-side error
+      errorMessage = `Error: ${error.error.message}`;
+      errorDetails = {
+        type: 'Client-side error',
+        message: error.error.message
+      };
+    } else {
+      // Other errors
+      errorMessage = error.message || 'An unknown error occurred';
+      errorDetails = error;
+    }
+    
+    // Log detailed error information
+    console.error('Error details:', {
+      message: errorMessage,
+      details: errorDetails,
+      timestamp: new Date().toISOString()
+    });
 
     if (error instanceof HttpErrorResponse) {
       // Server-side error
@@ -649,27 +697,80 @@ export class StockAlertService {
     return throwError(() => new Error(errorMessage));
   }
 
+  private handleWebSocketClose(): void {
+    console.log('WebSocket connection closed');
+    StockAlertService.isConnected = false;
+    
+    // Clear ping interval and timeout
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+    }
+    
+    if (this.pingTimeout) {
+      clearTimeout(this.pingTimeout);
+      this.pingTimeout = null;
+    }
+    
+    // Attempt to reconnect if we have active subscriptions
+    if (StockAlertService.activeSubscriptions > 0) {
+      console.log('Attempting to reconnect...');
+      this.reconnect();
+    }
+  }
+
+  private handleWebSocketError(error: any): void {
+    console.error('WebSocket error:', error);
+    
+    // If we're not already trying to reconnect, attempt to reconnect
+    if (!StockAlertService.connectionInProgress && StockAlertService.activeSubscriptions > 0) {
+      console.log('Attempting to reconnect after error...');
+      this.reconnect();
+    }
+  }
+
+  private handleTickerMessage(tickerData: unknown): void {
+    if (!tickerData) {
+      console.warn('Received empty ticker data');
+      return;
+    }
+
+    try {
+      const data = (typeof tickerData === 'object' && tickerData !== null && 'data' in tickerData)
+        ? (tickerData as { data: unknown }).data
+        : tickerData;
+
+      if (data && typeof data === 'object') {
+        const ticker: TickerData = {
+          title: (data as any).title || 'N/A',
+          type: (data as any).type || 'unknown',
+          lastPrice: Number((data as any).lastPrice) || 0,
+          changePercent: Number((data as any).changePercent) || 0,
+          receivedAt: new Date().toISOString()
+        };
+        StockAlertService.tickerSubject.next(ticker);
+      }
+    } catch (error) {
+      console.error('Error processing ticker message:', error, 'Raw data:', tickerData);
+    }
+  }
+
   private handleWebSocketMessage(data: any): void {
     try {
       // Handle string messages (raw WebSocket messages)
       if (typeof data === 'string') {
         if (data.trim() === 'ping') {
-          this.handlePing();
-          return;
-        } else if (data.trim() === 'pong') {
           this.handlePong();
           return;
         }
 
         // Try to parse as JSON if it's not a simple ping/pong
         try {
-          data = JSON.parse(data);
-          // If we get here, it was valid JSON
-          this.processParsedMessage(data);
+          const parsedData = JSON.parse(data);
+          this.processParsedMessage(parsedData);
           return;
-        } catch (e) {
-          // Not JSON, log and ignore
-          console.log('Received plain text message:', data);
+        } catch (parseError) {
+          console.warn('Failed to parse WebSocket message as JSON:', parseError, 'Raw data:', data);
           return;
         }
       } else if (data && typeof data === 'object') {
@@ -681,12 +782,13 @@ export class StockAlertService {
       console.warn('Unhandled WebSocket message format:', data);
     } catch (error) {
       console.error('Error processing WebSocket message:', error, 'Raw data:', data);
+      this.handleWebSocketError(error);
     }
   }
 
   private processParsedMessage(parsedData: any): void {
     if (!parsedData) {
-      console.warn('Received empty parsed data');
+      console.warn('Received empty or invalid message data');
       return;
     }
     
@@ -695,34 +797,32 @@ export class StockAlertService {
       const timestamp = 'timestamp' in parsedData ? parsedData.timestamp : undefined;
       this.handlePing(timestamp);
       return;
-    } 
-    
+    }
+
     if (parsedData.type === 'pong') {
       const timestamp = 'timestamp' in parsedData ? parsedData.timestamp : undefined;
       this.handlePong(timestamp);
       return;
     }
 
-    // Handle different message types
+    // Handle other message types
     if (parsedData.type) {
-      try {
-        switch (parsedData.type) {
-          case 'alert':
-            this.handleAlertMessage(parsedData);
-            break;
-          case 'isTicker':
-            this.handleTickerMessage(parsedData);
-            break;
-          default:
-            console.warn('Unknown message type:', parsedData.type, 'Data:', parsedData);
-        }
-      } catch (error) {
-        console.error(`Error processing message of type ${parsedData.type}:`, error);
+      switch (parsedData.type) {
+        case 'alert':
+          this.handleAlertMessage(parsedData);
+          break;
+        case 'ticker':
+          this.handleTickerMessage(parsedData);
+          break;
+        default:
+          console.warn('Unknown message type:', parsedData.type, 'Data:', parsedData);
       }
     } else {
       console.warn('Received message without type:', parsedData);
     }
   }
+
+  // ... (rest of the code remains the same)
 
   private handleAlertMessage(alertData: unknown): void {
     if (!alertData) {
@@ -734,97 +834,19 @@ export class StockAlertService {
       const data = (typeof alertData === 'object' && alertData !== null && 'data' in alertData)
         ? (alertData as { data: unknown }).data
         : alertData;
-      
-      const alert = this.formatAlertData(data);
+
+      const alert = this.formatAlertData(data as Record<string, unknown>);
       StockAlertService.messageSubject.next(alert);
     } catch (error) {
       console.error('Error processing alert message:', error, 'Raw data:', alertData);
     }
   }
 
-  private handleTickerMessage(tickerData: unknown): void {
-    if (!tickerData) {
-      console.warn('Received empty ticker data');
-      return;
-    }
-
-    try {
-      // If data is a string, try to parse it as JSON
-      const data = (() => {
-        if (typeof tickerData === 'object' && tickerData !== null) {
-          const typedData = tickerData as { data?: unknown };
-          if (typeof typedData.data === 'string') {
-            try {
-              return JSON.parse(typedData.data);
-            } catch (e) {
-              console.warn('Failed to parse ticker data as JSON:', typedData.data);
-              return typedData.data;
-            }
-          }
-          return typedData.data || tickerData;
-        }
-        return tickerData;
-      })();
-      
-      // Map to TickerData interface with type safety
-      const ticker: TickerData = {
-        title: (data as any)?.title?.toString() || '',
-        type: (data as any)?.type?.toString() || '',
-        lastPrice: Number((data as any)?.lastPrice) || 0,
-        changePercent: Number((data as any)?.changePercent) || 0,
-        receivedAt: (data as any)?.receivedAt?.toString() || new Date().toISOString()
-      };
-      
-      StockAlertService.tickerSubject.next(ticker);
-    } catch (error) {
-      console.error('Error processing ticker data:', error, 'Raw data:', tickerData);
-    }
-  }
-
-  private handleWebSocketError(error: any): void {
-    console.error('WebSocket error:', error);
-    StockAlertService.isConnected = false;
-    StockAlertService.connectionInProgress = false;
-    
-    // Only try to reconnect if we have active subscriptions
-    if (StockAlertService.activeSubscriptions > 0) {
-      this.reconnect();
-    }
-  }
-
-  private handleWebSocketClose(): void {
-    console.log('Handling WebSocket close event');
-    StockAlertService.isConnected = false;
-    StockAlertService.connectionInProgress = false;
-    
-    // Clean up existing socket
-    if (StockAlertService.socket$) {
-      try {
-        StockAlertService.socket$.complete();
-      } catch (e) {
-        console.error('Error completing WebSocket:', e);
-      }
-      StockAlertService.socket$ = null;
-    }
-    
-    // Only attempt to reconnect if we still have active subscriptions
-    if (StockAlertService.activeSubscriptions > 0) {
-      console.log('Active subscriptions remain, attempting to reconnect...');
-      this.reconnect();
-    } else {
-      console.log('No active subscriptions, not reconnecting');
-    }
-  }
+  // ... (rest of the code remains the same)
 
   private reconnect(): void {
     if (StockAlertService.reconnectAttempts >= StockAlertService.maxReconnectAttempts) {
-      console.error('Max reconnection attempts reached. Please refresh the page.');
-      
-      // Reset reconnect attempts after a delay to allow for manual refresh
-      setTimeout(() => {
-        StockAlertService.reconnectAttempts = 0;
-      }, 60000); // Reset after 1 minute
-      
+      console.error('Max reconnection attempts reached. Please refresh the page to try again.');
       return;
     }
 
@@ -834,64 +856,91 @@ export class StockAlertService {
       return;
     }
 
-    // Clean up any existing connection
+    // Close existing connection if any
     if (StockAlertService.socket$) {
-      try {
+      if (!StockAlertService.socket$.closed) {
         StockAlertService.socket$.complete();
-      } catch (e) {
-        console.error('Error completing WebSocket during reconnect:', e);
       }
       StockAlertService.socket$ = null;
     }
 
-    StockAlertService.reconnectAttempts++;
-    const delayMs = Math.min(1000 * Math.pow(2, StockAlertService.reconnectAttempts), 30000);
-    
-    console.log(`Scheduling reconnection in ${delayMs}ms... (Attempt ${StockAlertService.reconnectAttempts}/${StockAlertService.maxReconnectAttempts})`);
-    
-    // Clear any existing timeout to prevent multiple reconnection attempts
+    // Increment reconnect attempts
+    const attempt = ++StockAlertService.reconnectAttempts;
+    const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 30000); // Exponential backoff with max 30s
+
+    console.log(`Attempting to reconnect (${attempt}/${StockAlertService.maxReconnectAttempts}) in ${delayMs}ms`);
+
+    // Clear any existing timeout
     if (StockAlertService.reconnectTimeout) {
       clearTimeout(StockAlertService.reconnectTimeout);
+      StockAlertService.reconnectTimeout = null;
     }
-    
-    StockAlertService.reconnectTimeout = setTimeout(() => {
-      console.log('Attempting to reconnect now...');
-      // Reset connection in progress flag to allow reconnection
+
+    // Set new timeout
+    StockAlertService.reconnectTimeout = window.setTimeout(() => {
       StockAlertService.connectionInProgress = false;
       this.connect();
     }, delayMs);
   }
-  
-  // Add the missing disconnect method
-  disconnect(): void {
-    // Clear ping interval
+
+  // ... (rest of the code remains the same)
+
+  /**
+   * Disconnects the WebSocket and cleans up resources
+   */
+  public disconnect(): void {
+    console.log('Disconnecting WebSocket...');
+
+    // Clear ping interval and timeout
     if (this.pingInterval) {
       clearInterval(this.pingInterval);
       this.pingInterval = null;
     }
-    
+    if (this.pingTimeout) {
+      clearTimeout(this.pingTimeout);
+      this.pingTimeout = null;
+    }
+
+    // Clear any pending reconnect attempt
+    if (StockAlertService.reconnectTimeout) {
+      clearTimeout(StockAlertService.reconnectTimeout);
+      StockAlertService.reconnectTimeout = null;
+    }
+
     // Unsubscribe and clean up socket subscription
     if (StockAlertService.socketSubscription) {
       try {
-        (StockAlertService.socketSubscription as Subscription).unsubscribe();
+        const subscription = StockAlertService.socketSubscription;
+        if (!subscription.closed) {
+          subscription.unsubscribe();
+        }
       } catch (e) {
-        console.error('Error unsubscribing from socket:', e);
+        const error = e as Error;
+        console.error('Error unsubscribing from WebSocket:', error.message);
       } finally {
         StockAlertService.socketSubscription = null;
       }
     }
-      
-      // Complete the WebSocket connection
-      if (StockAlertService.socket$) {
-        try {
+
+    // Close the WebSocket connection
+    if (StockAlertService.socket$) {
+      try {
+        if (!StockAlertService.socket$.closed) {
           StockAlertService.socket$.complete();
-        } catch (e) {
-          console.error('Error completing WebSocket:', e);
-        } finally {
-          StockAlertService.socket$ = null;
         }
+      } catch (e) {
+        const error = e as Error;
+        console.error('Error completing WebSocket during disconnect:', error.message);
+      } finally {
+        StockAlertService.socket$ = null;
       }
     }
+
+    // Reset connection state
+    StockAlertService.isConnected = false;
+    StockAlertService.connectionInProgress = false;
+    StockAlertService.reconnectAttempts = 0;
+    
+    console.log('WebSocket disconnected and cleaned up');
   }
-  
-  // Implement OnDestroy interface
+}
