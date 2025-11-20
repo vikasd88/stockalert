@@ -1,10 +1,11 @@
-import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { StockAlertService, StockAlert as BaseStockAlert, PaginatedResponse, TickerData } from '../../services/stock-alert.service';
 import { AuthService } from '../../services/auth.service';
 import { Subscription, finalize } from 'rxjs';
 import { MarketTicker } from '../market-ticker/market-ticker';
+import { GoogleAnalyticsService } from 'ngx-google-analytics';
 // Extend the BaseStockAlert to properly handle index signatures
 type StockAlert = {
   [K in keyof BaseStockAlert]: BaseStockAlert[K];
@@ -102,6 +103,8 @@ export class StockAlerts implements OnInit, OnDestroy {
       .sort((a, b) => a.order - b.order);
   }
 
+  private ga = inject(GoogleAnalyticsService);
+  
   constructor(
     private stockAlertService: StockAlertService,
     private authService: AuthService,
@@ -120,12 +123,28 @@ export class StockAlerts implements OnInit, OnDestroy {
 
   // Open chart for the given alert
   openChart(alert: StockAlert): void {
+    let chartType = 'unknown';
+    let url = '';
+    
     if (alert.equityChartUrl) {
-      this.redirectToExternalUrl(alert.equityChartUrl);
+      chartType = 'equity';
+      url = alert.equityChartUrl;
     } else if (alert.liveOptionChartUrl) {
-      this.redirectToExternalUrl(alert.liveOptionChartUrl);
+      chartType = 'options';
+      url = alert.liveOptionChartUrl;
     } else if (alert.futChartUrl) {
-      this.redirectToExternalUrl(alert.futChartUrl);
+      chartType = 'futures';
+      url = alert.futChartUrl;
+    }
+    
+    if (url) {
+      // Track the chart view event
+      this.ga.event('chart_view', 'user_interaction', 'Chart Viewed', chartType, {
+        'symbol': alert.symbol,
+        'chart_type': chartType
+      });
+      
+      this.redirectToExternalUrl(url);
     }
   }
 
@@ -133,24 +152,48 @@ export class StockAlerts implements OnInit, OnDestroy {
   openScreener(alert: StockAlert): void {
     // Example URL - replace with your actual screener URL
     const screenerUrl = `https://www.screener.in/company/${alert.symbol}/`;
+    
+    // Track screener view event
+    this.ga.event('screener_view', 'user_interaction', 'Screener Viewed', alert.symbol, {
+      'symbol': alert.symbol,
+      'url': screenerUrl
+    });
+    
     this.redirectToExternalUrl(screenerUrl);
   }
 
   // Open option chain for the given alert
   openOptionChain(alert: StockAlert): void {
+    let url = '';
+    
     if (alert.liveOptionChartUrl) {
-      this.redirectToExternalUrl(alert.liveOptionChartUrl);
+      url = alert.liveOptionChartUrl;
     } else {
       // Fallback to a generic option chain URL if specific one is not available
-      const optionChainUrl = `https://www.nseindia.com/option-chain?symbol=${alert.symbol}`;
-      this.redirectToExternalUrl(optionChainUrl);
+      url = `https://www.nseindia.com/option-chain?symbol=${alert.symbol}`;
     }
+    
+    // Track option chain view event
+    this.ga.event('option_chain_view', 'user_interaction', 'Option Chain Viewed', alert.symbol, {
+      'symbol': alert.symbol,
+      'url': url
+    });
+    
+    this.redirectToExternalUrl(url);
   }
 
   // Add stock to watchlist
   addToWatchlist(alert: StockAlert): void {
     // Implement your watchlist logic here
     console.log('Adding to watchlist:', alert.symbol);
+    
+    // Track add to watchlist event
+    this.ga.event('add_to_watchlist', 'user_interaction', 'Added to Watchlist', alert.symbol, {
+      'symbol': alert.symbol,
+      'price': alert.ltp || 0,
+      'change_percent': alert.percentChange || 0
+    });
+    
     // You might want to show a toast/snackbar message
     // this.snackBar.open(`${alert.symbol} added to watchlist`, 'Close', { duration: 3000 });
   }
