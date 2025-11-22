@@ -4,7 +4,8 @@
   height: 100%;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -17,8 +18,15 @@ $success-color: #4caf50;
 
 /* Blinking animation for new alerts */
 @keyframes blink {
-  0%, 100% { background-color: rgba(255, 0, 0, 0.1); }
-  50% { background-color: rgba(255, 0, 0, 0.3); }
+
+  0%,
+  100% {
+    background-color: rgba(255, 0, 0, 0.1);
+  }
+
+  50% {
+    background-color: rgba(255, 0, 0, 0.3);
+  }
 }
 
 .blinking-row {
@@ -33,7 +41,7 @@ $success-color: #4caf50;
   align-items: center;
   padding: 20px;
   color: #666;
-  
+
   .spinner {
     width: 20px;
     height: 20px;
@@ -46,8 +54,13 @@ $success-color: #4caf50;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-row {
@@ -74,11 +87,11 @@ $success-color: #4caf50;
   background-color: #f9f9f9;
   border-radius: 4px;
   margin: 20px 0;
-  
+
   p {
     margin: 0;
     line-height: 1.5;
-    
+
     &.hint {
       font-size: 0.9em;
       color: #999;
@@ -92,26 +105,26 @@ $success-color: #4caf50;
   max-height: calc(100vh - 100px);
   overflow-y: hidden;
   position: relative;
-  
+
   .table-responsive {
     overflow: visible;
   }
-  
+
   /* Custom scrollbar */
   &::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: #f1f1f1;
     border-radius: 4px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: #c1c1c1;
     border-radius: 4px;
-    
+
     &:hover {
       background: #a8a8a8;
     }
@@ -123,15 +136,16 @@ $success-color: #4caf50;
   width: 100%;
   border-collapse: collapse;
   margin-top: 10px;
-  min-width: 1000px; /* Ensure minimum width for the table */
-  
+  min-width: 1000px;
+  /* Ensure minimum width for the table */
+
   thead {
     position: sticky;
     top: 0;
     z-index: 10;
     background-color: #fff;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    
+
     th {
       position: relative;
       z-index: 11;
@@ -146,53 +160,54 @@ $success-color: #4caf50;
       white-space: nowrap;
     }
   }
-  
-  th, td {
+
+  th,
+  td {
     padding: 12px 16px;
     text-align: left;
     border-bottom: 1px solid #e0e0e0;
-    
+
     &.positive {
       color: $success-color;
     }
-    
+
     &.negative {
       color: $warn-color;
     }
   }
-  
+
   th {
     background-color: #f5f5f5;
     font-weight: 600;
     position: sticky;
     top: 0;
     z-index: 10;
-    
+
     &.sortable {
       cursor: pointer;
       user-select: none;
-      
+
       &:hover {
         background-color: #eee;
       }
-      
+
       .sort-icon {
         margin-left: 5px;
         font-size: 0.9em;
       }
     }
   }
-  
+
   tr {
     transition: background-color 0.2s ease;
-    
+
     &:hover {
       background-color: #f9f9f9;
     }
-    
+
     &.premium-row {
       background-color: #f8f5ff;
-      
+
       &:hover {
         background-color: #f0eaff;
       }
@@ -205,9 +220,11 @@ $success-color: #4caf50;
   .alerts-section {
     max-height: calc(100vh - 180px);
   }
-  
+
   .alerts-table {
-    th, td {
+
+    th,
+    td {
       padding: 10px 12px;
     }
   }
@@ -217,14 +234,17 @@ $success-color: #4caf50;
   .alerts-section {
     max-height: calc(100vh - 160px);
   }
-  
+
   .alerts-table {
-    th, td {
+
+    th,
+    td {
       padding: 8px 10px;
       font-size: 0.95em;
     }
   }
 }
+
 $warning-color: #ff9800;
 $info-color: #2196f3;
 
@@ -240,31 +260,36 @@ div.stock-alerts-container {
   color: #333;
   background-color: #f5f7fa;
   min-height: 100vh;
-  
+
   .content-wrapper {
     display: flex;
     flex: 1;
     gap: 20px;
-    min-height: 0; /* Allows the flex item to shrink below its content size */
-    overflow: hidden; /* Prevents any potential overflow */
+    min-height: 0;
+    /* Allows the flex item to shrink below its content size */
+    overflow: hidden;
+    /* Prevents any potential overflow */
     margin-top: 0px;
-    
+
     .table-container {
       flex: 1;
       display: flex;
       flex-direction: column;
-      min-height: 0; /* Allows the flex item to shrink below its content size */
-      overflow: hidden; /* Prevents any potential overflow */
-      min-width: 0; /* Prevents flex items from overflowing */
+      min-height: 0;
+      /* Allows the flex item to shrink below its content size */
+      overflow: hidden;
+      /* Prevents any potential overflow */
+      min-width: 0;
+      /* Prevents flex items from overflowing */
     }
-    
+
     .ad-container {
       flex: 0 0 300px;
       position: sticky;
       top: 20px;
       height: fit-content;
       margin-top: 15px;
-      
+
       .ad-unit {
         background-color: #ffffff;
         border: 1px solid #e0e0e0;
@@ -278,7 +303,7 @@ div.stock-alerts-container {
         justify-content: center;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         overflow: hidden;
-        
+
         /* Media.net ad container */
         #M602612ScriptRootC {
           width: 100%;
@@ -287,7 +312,7 @@ div.stock-alerts-container {
           align-items: center;
           justify-content: center;
         }
-        
+
         /* Fallback text when ad is loading */
         &:after {
           content: 'Loading advertisement...';
@@ -295,7 +320,7 @@ div.stock-alerts-container {
           font-size: 14px;
           display: none;
         }
-        
+
         /* Show loading text if script fails to load */
         &.ad-loading:after {
           display: block;
@@ -336,10 +361,10 @@ div.stock-alerts-container {
       align-items: center;
       gap: 16px;
       position: relative;
-      
+
       .column-selector-container {
         position: relative;
-        
+
         .column-selector-button {
           display: flex;
           align-items: center;
@@ -352,17 +377,17 @@ div.stock-alerts-container {
           color: #374151;
           cursor: pointer;
           transition: all 0.2s ease;
-          
+
           &:hover {
             background: #e5e7eb;
             border-color: #9ca3af;
           }
-          
+
           i {
             font-size: 14px;
           }
         }
-        
+
         .column-selector-dropdown {
           position: absolute;
           top: 100%;
@@ -376,21 +401,21 @@ div.stock-alerts-container {
           max-height: 400px;
           overflow-y: auto;
           margin-top: 8px;
-          
+
           .column-selector-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 12px 16px;
             border-bottom: 1px solid #e5e7eb;
-            
+
             h4 {
               margin: 0;
               font-size: 14px;
               font-weight: 600;
               color: #111827;
             }
-            
+
             .reset-button {
               background: none;
               border: none;
@@ -399,37 +424,37 @@ div.stock-alerts-container {
               cursor: pointer;
               padding: 4px 8px;
               border-radius: 4px;
-              
+
               &:hover {
                 background: #eff6ff;
               }
             }
           }
-          
+
           .column-list {
             padding: 8px 0;
-            
+
             .column-item {
               display: flex;
               justify-content: space-between;
               align-items: center;
               padding: 8px 16px;
-              
+
               &:hover {
                 background: #f9fafb;
               }
-              
+
               .checkbox-container {
                 display: flex;
                 align-items: center;
                 gap: 8px;
                 cursor: pointer;
                 flex-grow: 1;
-                
+
                 input[type="checkbox"] {
                   display: none;
-                  
-                  & + .checkmark {
+
+                  &+.checkmark {
                     display: inline-block;
                     width: 16px;
                     height: 16px;
@@ -437,7 +462,7 @@ div.stock-alerts-container {
                     border-radius: 4px;
                     position: relative;
                     transition: all 0.2s ease;
-                    
+
                     &::after {
                       content: '';
                       position: absolute;
@@ -451,26 +476,26 @@ div.stock-alerts-container {
                       transform: rotate(45deg);
                     }
                   }
-                  
-                  &:checked + .checkmark {
+
+                  &:checked+.checkmark {
                     background: #3b82f6;
                     border-color: #3b82f6;
-                    
+
                     &::after {
                       display: block;
                     }
                   }
                 }
-                
+
                 .checkmark {
                   flex-shrink: 0;
                 }
               }
-              
+
               .column-actions {
                 display: flex;
                 gap: 4px;
-                
+
                 .move-button {
                   background: none;
                   border: 1px solid #d1d5db;
@@ -482,17 +507,17 @@ div.stock-alerts-container {
                   justify-content: center;
                   cursor: pointer;
                   color: #6b7280;
-                  
+
                   &:hover:not(:disabled) {
                     background: #f3f4f6;
                     color: #374151;
                   }
-                  
+
                   &:disabled {
                     opacity: 0.5;
                     cursor: not-allowed;
                   }
-                  
+
                   i {
                     font-size: 12px;
                   }
@@ -502,7 +527,8 @@ div.stock-alerts-container {
           }
         }
       }
-      
+
+
       .logout-button {
         background: #fff;
         border: 1px solid #e0e0e0;
@@ -517,7 +543,7 @@ div.stock-alerts-container {
         cursor: pointer;
         transition: all 0.2s ease;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        
+
         &:hover {
           background-color: #f8f9fa;
           color: #333;
@@ -525,12 +551,12 @@ div.stock-alerts-container {
           transform: translateY(-1px);
           box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        
+
         &:active {
           transform: translateY(0);
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        
+
         i {
           font-size: 16px;
           display: flex;
@@ -538,6 +564,68 @@ div.stock-alerts-container {
           justify-content: center;
         }
       }
+
+      .login-button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: white;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        position: relative;
+        overflow: hidden;
+
+        &::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+          transition: left 0.5s;
+        }
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+          background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+
+          &::before {
+            left: 100%;
+          }
+        }
+
+        &:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
+        }
+
+        i {
+          font-size: 16px;
+          animation: pulse 2s ease-in-out infinite;
+        }
+      }
+
+      @keyframes pulse {
+
+        0%,
+        100% {
+          transform: scale(1);
+        }
+
+        50% {
+          transform: scale(1.1);
+        }
+      }
+
       flex-wrap: wrap;
 
       .tabs {
@@ -666,7 +754,7 @@ div.stock-alerts-container {
     max-height: calc(100vh - 120px);
     display: flex;
     flex-direction: column;
-    
+
     /* Custom scrollbar for Webkit browsers */
     &::-webkit-scrollbar {
       height: 8px;
@@ -697,25 +785,28 @@ div.stock-alerts-container {
     border-collapse: collapse;
     border-spacing: 0;
     margin-top: 0px;
-    table-layout: auto; /* Let the table adjust to content */
-    white-space: nowrap; /* Prevent text wrapping */
-    
+    table-layout: auto;
+    /* Let the table adjust to content */
+    white-space: nowrap;
+    /* Prevent text wrapping */
+
     // Remove fixed minimum width to allow content-based sizing
     min-width: auto;
-    
-    th, td {
+
+    th,
+    td {
       padding: 8px 12px;
       text-align: left;
       border-bottom: 1px solid #e0e0e0;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      
+
       // Add some padding between columns
       &:not(:last-child) {
         padding-right: 16px;
       }
-      
+
       // Right align numeric columns
       &.price-cell,
       &.change-cell,
@@ -729,14 +820,14 @@ div.stock-alerts-container {
       &.avgVolume-cell {
         text-align: right;
       }
-      
+
       // Center align certain columns
       &.type-cell,
       &.source-cell {
         text-align: center;
       }
     }
-    
+
     th {
       position: sticky;
       top: 0;
@@ -746,49 +837,118 @@ div.stock-alerts-container {
       border-bottom: 2px solid #e0e0e0;
       z-index: 10;
     }
-    .volume-cell { width: 120px; text-align: right; }
-    .threshold-cell { width: 100px; text-align: right; }
-    .open-cell, .high-cell, .low-cell, .close-cell { width: 90px; text-align: right; }
-    .actions-cell { width: 100px; text-align: center; }
-  
+
+    .volume-cell {
+      width: 120px;
+      text-align: right;
+    }
+
+    .threshold-cell {
+      width: 100px;
+      text-align: right;
+    }
+
+    .open-cell,
+    .high-cell,
+    .low-cell,
+    .close-cell {
+      width: 90px;
+      text-align: right;
+    }
+
+    .actions-cell {
+      width: 100px;
+      text-align: center;
+    }
+
     & {
       min-width: 1000px;
     }
-  
-    th, td {
+
+    th,
+    td {
       padding: 12px 8px;
       text-align: left;
       border-bottom: 1px solid #e5e7eb;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      
-      &.symbol-cell { width: auto; }
-      &.type-cell { width: 100px; }
-      &.price-cell { width: 90px; text-align: right; }
-      &.change-cell { width: 90px; text-align: right; }
-      &.volume-cell { width: 120px; text-align: right; }
-      &.threshold-cell { width: 100px; text-align: right; }
-      &.open-cell, &.high-cell, &.low-cell, &.prevClose-cell { width: 90px; text-align: right; }
-      &.exchangeTime-cell, &.alertTime-cell { width: 150px; }
-      
+
+      &.symbol-cell {
+        width: auto;
+      }
+
+      &.type-cell {
+        width: 100px;
+      }
+
+      &.price-cell {
+        width: 90px;
+        text-align: right;
+      }
+
+      &.change-cell {
+        width: 90px;
+        text-align: right;
+      }
+
+      &.volume-cell {
+        width: 120px;
+        text-align: right;
+      }
+
+      &.threshold-cell {
+        width: 100px;
+        text-align: right;
+      }
+
+      &.open-cell,
+      &.high-cell,
+      &.low-cell,
+      &.prevClose-cell {
+        width: 90px;
+        text-align: right;
+      }
+
+      &.exchangeTime-cell,
+      &.alertTime-cell {
+        width: 150px;
+      }
+
       // Responsive adjustments
       @media (max-width: 1200px) {
-        &.exchangeTime-cell, &.alertTime-cell {
+
+        &.exchangeTime-cell,
+        &.alertTime-cell {
           width: 120px;
         }
       }
-      
+
       @media (max-width: 992px) {
-        &.symbol-cell { width: 100px; }
-        &.type-cell { width: 80px; }
-        &.price-cell, &.change-cell, &.open-cell, &.high-cell, &.low-cell, &.prevClose-cell { 
-          width: 80px; 
+        &.symbol-cell {
+          width: 100px;
         }
-        &.volume-cell, &.threshold-cell { width: 100px; }
+
+        &.type-cell {
+          width: 80px;
+        }
+
+        &.price-cell,
+        &.change-cell,
+        &.open-cell,
+        &.high-cell,
+        &.low-cell,
+        &.prevClose-cell {
+          width: 80px;
+        }
+
+        &.volume-cell,
+        &.threshold-cell {
+          width: 100px;
+        }
       }
     }
-    
+
     th {
       font-weight: 600;
       color: #4b5563;
@@ -800,41 +960,41 @@ div.stock-alerts-container {
       top: 0;
       z-index: 10;
     }
-    
+
     tr {
       transition: background-color 0.2s ease;
-      
+
       &:hover {
         background-color: #f9fafb;
       }
-      
+
       &.premium-row {
         background-color: #f0f9ff;
-        
+
         &:hover {
           background-color: #e0f2fe;
         }
       }
     }
-    
+
     .cell-content {
       display: block;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    
+
     .symbol {
       font-weight: 600;
       color: #111827;
     }
-    
+
     .datasource {
       font-size: 0.75rem;
       color: #6b7280;
       margin-left: 4px;
     }
-    
+
     .trade-type {
       display: inline-block;
       padding: 2px 8px;
@@ -842,42 +1002,61 @@ div.stock-alerts-container {
       font-size: 0.75rem;
       font-weight: 500;
       text-transform: capitalize;
-      
-      &.buy { background-color: #dcfce7; color: #166534; }
-      &.sell { background-color: #fee2e2; color: #991b1b; }
-      &.alert { background-color: #dbeafe; color: #1e40af; }
+
+      &.buy {
+        background-color: #dcfce7;
+        color: #166534;
+      }
+
+      &.sell {
+        background-color: #fee2e2;
+        color: #991b1b;
+      }
+
+      &.alert {
+        background-color: #dbeafe;
+        color: #1e40af;
+      }
     }
-    
+
     .positive {
       color: #166534;
       font-weight: 500;
-      
+
       &::before {
         content: '↑';
         margin-right: 4px;
       }
     }
-    
+
     .negative {
       color: #991b1b;
       font-weight: 500;
-      
+
       &::before {
         content: '↓';
         margin-right: 4px;
       }
     }
-    
-    .volume-high { color: #166534; }
-    .volume-medium { color: #92400e; }
-    .volume-low { color: #991b1b; }
-    
+
+    .volume-high {
+      color: #166534;
+    }
+
+    .volume-medium {
+      color: #92400e;
+    }
+
+    .volume-low {
+      color: #991b1b;
+    }
+
     .volume-status {
       font-size: 0.75rem;
       margin-left: 4px;
       opacity: 0.8;
     }
-    
+
     .time-cell {
       .timestamp {
         display: block;
@@ -885,7 +1064,7 @@ div.stock-alerts-container {
         color: #4b5563;
       }
     }
-    
+
     // Symbol cell with hover effect
     .symbol-cell {
       position: relative;
@@ -895,7 +1074,7 @@ div.stock-alerts-container {
       min-width: 150px;
       align-items: flex-start;
       min-height: 40px;
-      
+
       .symbol-text {
         font-weight: 500;
         color: #3b82f6;
@@ -904,12 +1083,12 @@ div.stock-alerts-container {
         border-radius: 3px;
         transition: all 0.2s;
         white-space: nowrap;
-        
+
         &:hover {
           background-color: #f0f5ff;
         }
       }
-      
+
       .action-buttons {
         display: none;
         position: relative;
@@ -922,7 +1101,7 @@ div.stock-alerts-container {
         min-width: auto;
         flex-wrap: wrap;
         gap: 4px;
-        
+
         .action-button {
           display: inline-flex;
           align-items: center;
@@ -937,38 +1116,49 @@ div.stock-alerts-container {
           margin: 0;
           padding: 0;
           transition: all 0.2s;
-          
+
           &:hover {
             background: #e2e8f0;
             transform: translateY(-1px);
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
           }
-          
+
           i {
             font-size: 12px;
           }
-          
+
           // Color variations for different button types
-          &.chart-btn { color: #3b82f6; }
-          &.screener-btn { color: #10b981; }
-          &.option-chain-btn { color: #8b5cf6; }
-          &.watchlist-btn { color: #f59e0b; }
-          
+          &.chart-btn {
+            color: #3b82f6;
+          }
+
+          &.screener-btn {
+            color: #10b981;
+          }
+
+          &.option-chain-btn {
+            color: #8b5cf6;
+          }
+
+          &.watchlist-btn {
+            color: #f59e0b;
+          }
+
           // Native tooltip will be used
         }
       }
-      
+
       &:hover .table-actions {
         display: inline-flex;
       }
-      
+
       .symbol-text {
         display: inline-block;
         padding: 2px 6px;
         border-radius: 3px;
         transition: all 0.2s ease;
       }
-      
+
       .action-buttons {
         position: absolute;
         top: 50%;
@@ -978,12 +1168,12 @@ div.stock-alerts-container {
         background: white;
         border: 1px solid #e0e0e0;
         border-radius: 4px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         padding: 4px 6px;
         z-index: 10;
         white-space: nowrap;
         margin-left: 8px;
-        
+
         .action-button {
           display: inline-flex;
           align-items: center;
@@ -998,30 +1188,30 @@ div.stock-alerts-container {
           transition: all 0.2s ease;
           text-decoration: none;
           font-size: 12px;
-          
+
           &:hover {
             background: #e9ecef;
             color: #333;
           }
-          
+
           i {
             font-size: 12px;
           }
         }
       }
-      
+
       &:hover {
         .symbol-text {
           background-color: #f0f0f0;
         }
-        
+
         .action-buttons {
           display: inline-flex;
           gap: 4px;
         }
       }
     }
-    
+
     // Actions cell
     // .actions-cell {
     //   width: 150px;
@@ -1029,7 +1219,7 @@ div.stock-alerts-container {
     //   white-space: nowrap;
     //   text-align: right;
     //   position: relative;
-      
+
     //   .action-buttons {
     //     display: inline-flex;
     //     gap: 6px;
@@ -1040,7 +1230,7 @@ div.stock-alerts-container {
     //     position: relative;
     //     z-index: 10;
     //     border: 1px solid #e0e0e0;
-        
+
     //     .action-button {
     //       display: inline-flex;
     //       align-items: center;
@@ -1054,44 +1244,45 @@ div.stock-alerts-container {
     //       cursor: pointer;
     //       transition: all 0.2s ease;
     //       text-decoration: none;
-          
+
     //       &:hover {
     //         background: #e0e0e0;
     //         color: #333;
     //         transform: translateY(-1px);
     //         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     //       }
-          
+
     //       i {
     //         font-size: 12px;
     //       }
     //     }
     //   }
-      
+
     //   // Always show the action buttons
     //   .action-buttons {
     //     opacity: 1 !important;
     //     visibility: visible !important;
     //   }
     // }
-    
+
     // Row hover effect
     tr:hover {
       .symbol-cell .symbol-text {
         background-color: #f0f0f0;
       }
-      
+
       .actions-cell .action-buttons {
         opacity: 1;
       }
     }
-    
-    th, td {
+
+    th,
+    td {
       padding: 12px 16px;
       text-align: left;
       border-bottom: 1px solid #e0e0e0;
     }
-    
+
     th {
       background-color: #f8f9fa;
       color: #5f6368;
@@ -1101,33 +1292,33 @@ div.stock-alerts-container {
       letter-spacing: 0.5px;
       white-space: nowrap;
     }
-    
+
     tr {
       transition: background-color 0.2s ease;
-      
+
       &:hover {
         background-color: #f5f7fa;
       }
-      
+
       &.premium-row {
         background-color: #f9f5ff;
-        
+
         &:hover {
           background-color: #f3e8ff;
         }
       }
     }
-    
+
     .symbol-cell {
       font-weight: 600;
       color: #1a237e;
       white-space: nowrap;
-      
+
       .symbol {
         display: block;
         font-size: 15px;
       }
-      
+
       .datasource {
         font-size: 11px;
         color: #757575;
@@ -1136,7 +1327,7 @@ div.stock-alerts-container {
         margin-top: 2px;
       }
     }
-    
+
     .type-cell {
       .trade-type {
         display: inline-block;
@@ -1147,30 +1338,30 @@ div.stock-alerts-container {
         text-transform: capitalize;
         background-color: #e3f2fd;
         color: #1565c0;
-        
+
         &.premium {
           background-color: #f3e5f5;
           color: #7b1fa2;
         }
-        
+
         &.buy {
           background-color: #e8f5e9;
           color: #2e7d32;
         }
-        
+
         &.sell {
           background-color: #ffebee;
           color: #c62828;
         }
       }
     }
-    
+
     .change-cell {
       font-weight: 600;
       white-space: nowrap;
       position: relative;
       padding-left: 20px;
-      
+
       &::before {
         content: '';
         position: absolute;
@@ -1184,56 +1375,56 @@ div.stock-alerts-container {
         align-items: center;
         justify-content: center;
       }
-      
+
       &.positive {
         color: #2e7d32;
-        
+
         &::before {
           content: '↑';
           color: #2e7d32;
         }
       }
-      
+
       &.negative {
         color: #c62828;
-        
+
         &::before {
           content: '↓';
           color: #c62828;
         }
       }
     }
-    
+
     .volume-cell {
       font-weight: 500;
-      
+
       .volume-status {
         font-size: 11px;
         color: #757575;
         margin-left: 4px;
       }
-      
+
       &.high-volume {
         color: #d32f2f;
         font-weight: 600;
       }
-      
+
       &.medium-volume {
         color: #f57c00;
       }
     }
-    
+
     .time-cell {
       white-space: nowrap;
       color: #616161;
       font-size: 13px;
     }
-    
+
     // .actions-cell {
     //   .table-actions {
     //     display: flex;
     //     gap: 8px;
-        
+
     //     .action-btn {
     //       color: #5c6bc0;
     //       background: none;
@@ -1246,165 +1437,166 @@ div.stock-alerts-container {
     //       justify-content: center;
     //       cursor: pointer;
     //       transition: all 0.2s ease;
-          
+
     //       &:hover {
     //         background-color: #e8eaf6;
     //         color: #3949ab;
     //       }
-          
+
     //       .icon {
     //         font-size: 16px;
     //       }
     //     }
     //   }
     // }
-    
+
     // Premium table specific styles
     &.premium-table {
       th {
         background-color: #f3e5f5;
       }
-      
+
       .premium-row {
         background-color: #f9f5ff;
-        
+
         &:hover {
           background-color: #f3e8ff;
         }
       }
     }
   }
-  
+
   .no-alerts {
     text-align: center;
     padding: 40px 20px;
     color: #757575;
-    
+
     p {
       margin: 0 0 8px;
       font-size: 16px;
     }
-    
+
     .hint {
       font-size: 14px;
       color: #9e9e9e;
     }
   }
 
-      &::before {
-        background: linear-gradient(to bottom, #9c27b0, #673ab7);
-      }
+  &::before {
+    background: linear-gradient(to bottom, #9c27b0, #673ab7);
+  }
+}
+
+.alert-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  position: relative;
+
+  .symbol-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .symbol {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1a237e;
+      line-height: 1.2;
     }
 
-    .alert-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 12px;
-      position: relative;
+    .trade-type {
+      font-size: 12px;
+      background: #e8eaf6;
+      color: $primary-color;
+      padding: 2px 8px;
+      border-radius: 10px;
+      display: inline-block;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
 
-      .symbol-container {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
+  .price-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
 
-        .symbol {
-          font-size: 18px;
-          font-weight: 700;
-          color: #1a237e;
-          line-height: 1.2;
-        }
-
-        .trade-type {
-          font-size: 12px;
-          background: #e8eaf6;
-          color: $primary-color;
-          padding: 2px 8px;
-          border-radius: 10px;
-          display: inline-block;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-      }
-
-      .price-container {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 4px;
-
-        .price {
-          font-size: 20px;
-          font-weight: 700;
-          color: #1a237e;
-          line-height: 1.2;
-        }
-
-        .change {
-          font-size: 14px;
-          font-weight: 600;
-          padding: 2px 8px;
-          border-radius: 10px;
-          display: inline-block;
-          line-height: 1.3;
-        }
-
-        &.price-up .change {
-          background-color: rgba(76, 175, 80, 0.15);
-          color: #2e7d32;
-        }
-
-        &.price-down .change {
-          background-color: rgba(244, 67, 54, 0.15);
-          color: #c62828;
-        }
-      }
+    .price {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1a237e;
+      line-height: 1.2;
     }
 
-    .alert-details {
+    .change {
+      font-size: 14px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      display: inline-block;
+      line-height: 1.3;
+    }
+
+    &.price-up .change {
+      background-color: rgba(76, 175, 80, 0.15);
+      color: #2e7d32;
+    }
+
+    &.price-down .change {
+      background-color: rgba(244, 67, 54, 0.15);
+      color: #c62828;
+    }
+  }
+}
+
+.alert-details {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #5f6368;
+
+  .detail-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin-bottom: 8px;
+    align-items: center;
+
+    &.meta {
       margin-top: 12px;
-      font-size: 13px;
+      padding-top: 12px;
+      border-top: 1px dashed #e0e0e0;
+      color: #757575;
+      font-size: 12px;
+    }
+
+    .label {
+      font-weight: 500;
       color: #5f6368;
+      white-space: nowrap;
+    }
 
-      .detail-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px 16px;
-        margin-bottom: 8px;
-        align-items: center;
+    .value {
+      font-weight: 400;
+      color: #212121;
+      margin-right: 8px;
 
-        &.meta {
-          margin-top: 12px;
-          padding-top: 12px;
-          border-top: 1px dashed #e0e0e0;
-          color: #757575;
-          font-size: 12px;
-        }
+      &.volume-high {
+        color: #d32f2f;
+        font-weight: 600;
+      }
 
-        .label {
-          font-weight: 500;
-          color: #5f6368;
-          white-space: nowrap;
-        }
-
-        .value {
-          font-weight: 400;
-          color: #212121;
-          margin-right: 8px;
-
-          &.volume-high {
-            color: #d32f2f;
-            font-weight: 600;
-          }
-
-          &.volume-medium {
-            color: #f57c00;
-            font-weight: 600;
-          }
-        }
+      &.volume-medium {
+        color: #f57c00;
+        font-weight: 600;
       }
     }
+  }
+}
+
 //           &/* Debug styles */
 // :host {
 //   display: block;
@@ -1420,11 +1612,12 @@ div.stock-alerts-container {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   border: 1px solid #e0e0e0;
   position: relative;
-  overflow: visible !important; /* Override any overflow settings */
-  
+  overflow: visible !important;
+  /* Override any overflow settings */
+
   /* Debug border to see the section boundaries */
   border: 2px dashed #ff0000 !important;
-  
+
   /* Ensure content is visible */
   * {
     position: relative;
@@ -1433,7 +1626,7 @@ div.stock-alerts-container {
     visibility: visible !important;
     display: block !important;
   }
-  
+
   /* Make sure the table is visible */
   .alerts-table {
     width: 100% !important;
@@ -1442,8 +1635,9 @@ div.stock-alerts-container {
     margin: 0;
     padding: 0;
     border: 2px solid #00ff00 !important;
-    
-    th, td {
+
+    th,
+    td {
       border: 1px solid #0000ff !important;
       padding: 8px !important;
       background-color: #ffffff !important;
@@ -1508,7 +1702,7 @@ div.stock-alerts-container {
       color: #856404;
       background-color: #fff3cd;
       border-color: #ffeeba;
-      
+
       button {
         background-color: #ffc107;
         color: #212529;
@@ -1516,7 +1710,7 @@ div.stock-alerts-container {
         padding: 6px 12px;
         border-radius: 4px;
         font-weight: 500;
-        
+
         &:hover {
           background-color: #e0a800;
         }
@@ -1527,7 +1721,7 @@ div.stock-alerts-container {
       color: #721c24;
       background-color: #f8d7da;
       border-color: #f5c6cb;
-      
+
       button {
         background-color: #dc3545;
         color: white;
@@ -1535,7 +1729,7 @@ div.stock-alerts-container {
         padding: 6px 12px;
         border-radius: 4px;
         font-weight: 500;
-        
+
         &:hover {
           background-color: #c82333;
         }
@@ -1554,7 +1748,8 @@ div.stock-alerts-container {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     margin-top: 0px;
 
-    th, td {
+    th,
+    td {
       padding: 12px 16px;
       text-align: left;
       border-bottom: 1px solid #e9ecef;
@@ -1571,11 +1766,11 @@ div.stock-alerts-container {
         font-size: 13px;
         letter-spacing: 0.5px;
         border: none;
-        
+
         &:first-child {
           border-top-left-radius: 8px;
         }
-        
+
         &:last-child {
           border-top-right-radius: 8px;
         }
@@ -1585,28 +1780,28 @@ div.stock-alerts-container {
     tbody {
       tr {
         transition: background-color 0.2s;
-        
+
         &:last-child {
           td {
             border-bottom: none;
-            
+
             &:first-child {
               border-bottom-left-radius: 8px;
             }
-            
+
             &:last-child {
               border-bottom-right-radius: 8px;
             }
           }
         }
-        
+
         &:hover {
           background-color: #f8f9fa;
         }
-        
+
         &.premium-row {
           background-color: #f8f9ff;
-          
+
           &:hover {
             background-color: #eef2ff;
           }
@@ -1617,7 +1812,7 @@ div.stock-alerts-container {
     .positive {
       color: #28a745;
       font-weight: 600;
-      
+
       &::before {
         content: '↑';
         margin-right: 4px;
@@ -1627,18 +1822,18 @@ div.stock-alerts-container {
     .negative {
       color: #dc3545;
       font-weight: 600;
-      
+
       &::before {
         content: '↓';
         margin-right: 4px;
       }
     }
-    
+
     .symbol {
       font-weight: 600;
       color: #2c3e50;
     }
-    
+
     .trade-type {
       display: inline-block;
       padding: 4px 8px;
@@ -1647,18 +1842,23 @@ div.stock-alerts-container {
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      
-      &.premium, &.volume, &.spike, &.alert {
+
+      &.premium,
+      &.volume,
+      &.spike,
+      &.alert {
         background-color: #e3f2fd;
         color: #1565c0;
       }
-      
-      &.buy, &.bullish {
+
+      &.buy,
+      &.bullish {
         background-color: #e8f5e9;
         color: #2e7d32;
       }
-      
-      &.sell, &.bearish {
+
+      &.sell,
+      &.bearish {
         background-color: #ffebee;
         color: #c62828;
       }
@@ -1684,7 +1884,7 @@ div.stock-alerts-container {
       animation: spin 0.8s ease-in-out infinite;
       margin-right: 12px;
     }
-    
+
     span {
       font-size: 15px;
       font-weight: 500;
@@ -1692,25 +1892,27 @@ div.stock-alerts-container {
   }
 
   @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
-  
+
   .empty-state {
     text-align: center;
     padding: 40px 20px;
     color: #6c757d;
-    
+
     p {
       font-size: 16px;
       margin-bottom: 10px;
-      
+
       &:first-child {
         font-size: 18px;
         font-weight: 500;
         color: #495057;
       }
     }
-    
+
     .hint {
       font-size: 14px;
       color: #adb5bd;
@@ -1723,13 +1925,13 @@ div.stock-alerts-container {
   div.stock-alerts-container {
     .content-wrapper {
       flex-direction: column;
-      
+
       .table-container,
       .ad-sidebar {
         flex: 1 1 100%;
         max-width: 100%;
       }
-      
+
       .ad-sidebar {
         position: static;
         margin-top: 20px;

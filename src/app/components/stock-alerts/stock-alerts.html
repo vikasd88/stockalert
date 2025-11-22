@@ -50,7 +50,10 @@
                         <i class="fas fa-crown"></i> Premium Alerts
                     </button>
                 </div>
-                <button class="logout-button" (click)="onLogout()" title="Logout" aria-label="Logout">
+                <button *ngIf="!isLoggedIn" class="login-button" (click)="onLogin()" title="Login" aria-label="Login">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+                <button *ngIf="isLoggedIn" class="logout-button" (click)="onLogout()" title="Logout" aria-label="Logout">
                     <i class="fas fa-sign-out-alt"></i>
                 </button>
             </div>

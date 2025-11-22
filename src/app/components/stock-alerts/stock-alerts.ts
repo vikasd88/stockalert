@@ -53,6 +53,7 @@ export class StockAlerts implements OnInit, OnDestroy {
   currentTime: Date = new Date(); // Add current time for display
   tickerData: any = null;
   isPaidUser = false;
+  isLoggedIn = false;
   activeTab: 'realtime' | 'free' | 'premium' = 'realtime';
 
   // Pagination
@@ -116,7 +117,8 @@ export class StockAlerts implements OnInit, OnDestroy {
   }
 
   private checkAuthStatus(): void {
-    this.isPaidUser = this.authService.isAuthenticated() && this.authService.isSubscribed();
+    this.isLoggedIn = this.authService.isAuthenticated();
+    this.isPaidUser = this.isLoggedIn && this.authService.isSubscribed();
     // Set the default tab based on user type
     this.activeTab = this.isPaidUser ? 'premium' : 'free';
   }
@@ -1135,6 +1137,10 @@ export class StockAlerts implements OnInit, OnDestroy {
 
   onLogout(): void {
     this.authService.logout();
+    this.router.navigate(['/login']);
+  }
+
+  onLogin(): void {
     this.router.navigate(['/login']);
   }
 
