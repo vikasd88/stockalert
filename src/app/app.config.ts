@@ -2,7 +2,7 @@ import { ApplicationConfig, provideZoneChangeDetection, PLATFORM_ID } from '@ang
 import { provideRouter, withViewTransitions } from '@angular/router';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
-import { provideGoogleAnalytics, GoogleAnalyticsService } from 'ngx-google-analytics';
+import { GoogleAnalyticsService, NgxGoogleAnalyticsModule, NgxGoogleAnalyticsRouterModule } from 'ngx-google-analytics';
 import { isPlatformBrowser } from '@angular/common';
 
 import { routes } from './app.routes';
@@ -22,7 +22,10 @@ export const appConfig: ApplicationConfig = {
     provideAnimations(),
     
     // Provide Google Analytics
-    isPlatformBrowser(PLATFORM_ID) ? provideGoogleAnalytics(GA_MEASUREMENT_ID) : [],
-    GoogleAnalyticsService
+    ...(isPlatformBrowser(PLATFORM_ID) ? [
+      GoogleAnalyticsService,
+      ...NgxGoogleAnalyticsModule.forRoot(GA_MEASUREMENT_ID).providers!,
+      ...NgxGoogleAnalyticsRouterModule.forRoot().providers!
+    ] : [])
   ]
 };

@@ -139,10 +139,10 @@ export class StockAlerts implements OnInit, OnDestroy {
     
     if (url) {
       // Track the chart view event
-      this.ga.event('chart_view', 'user_interaction', 'Chart Viewed', chartType, {
-        'symbol': alert.symbol,
-        'chart_type': chartType
-      });
+      // this.ga.event('chart_view', 'user_interaction', 'Chart Viewed', chartType, {
+      //   'symbol': alert.symbol,
+      //   'chart_type': chartType
+      // });
       
       this.redirectToExternalUrl(url);
     }
@@ -154,10 +154,10 @@ export class StockAlerts implements OnInit, OnDestroy {
     const screenerUrl = `https://www.screener.in/company/${alert.symbol}/`;
     
     // Track screener view event
-    this.ga.event('screener_view', 'user_interaction', 'Screener Viewed', alert.symbol, {
-      'symbol': alert.symbol,
-      'url': screenerUrl
-    });
+    // this.ga.event('screener_view', 'user_interaction', 'Screener Viewed', alert.symbol, {
+    //   'symbol': alert.symbol,
+    //   'url': screenerUrl
+    // });
     
     this.redirectToExternalUrl(screenerUrl);
   }
@@ -174,10 +174,10 @@ export class StockAlerts implements OnInit, OnDestroy {
     }
     
     // Track option chain view event
-    this.ga.event('option_chain_view', 'user_interaction', 'Option Chain Viewed', alert.symbol, {
-      'symbol': alert.symbol,
-      'url': url
-    });
+    // this.ga.event('option_chain_view', 'user_interaction', 'Option Chain Viewed', alert.symbol, {
+    //   'symbol': alert.symbol,
+    //   'url': url
+    // });
     
     this.redirectToExternalUrl(url);
   }
@@ -188,11 +188,11 @@ export class StockAlerts implements OnInit, OnDestroy {
     console.log('Adding to watchlist:', alert.symbol);
     
     // Track add to watchlist event
-    this.ga.event('add_to_watchlist', 'user_interaction', 'Added to Watchlist', alert.symbol, {
-      'symbol': alert.symbol,
-      'price': alert.ltp || 0,
-      'change_percent': alert.percentChange || 0
-    });
+    // this.ga.event('add_to_watchlist', 'user_interaction', 'Added to Watchlist', alert.symbol, {
+    //   'symbol': alert.symbol,
+    //   'price': alert.ltp || 0,
+    //   'change_percent': alert.percentChange || 0
+    // });
     
     // You might want to show a toast/snackbar message
     // this.snackBar.open(`${alert.symbol} added to watchlist`, 'Close', { duration: 3000 });
