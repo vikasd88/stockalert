@@ -27,10 +27,16 @@
     "logLevel": "debug"
   },
   "/ws": {
-    "target": "wss://stockalert-dev.gemsbok-mamba.ts.net/ws",
+    "target": "wss://stockalert-dev.gemsbok-mamba.ts.net",
     "ws": true,
     "secure": false,
     "changeOrigin": true,
-    "logLevel": "debug"
+    "logLevel": "debug",
+    "pathRewrite": {
+      "^/ws": "/ws/alerts"
+    },
+    "headers": {
+      "Origin": "https://stockalert-dev.gemsbok-mamba.ts.net"
+    }
   }
 }

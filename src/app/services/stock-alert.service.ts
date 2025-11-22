@@ -51,7 +51,7 @@ export interface StockAlert {
   id: number;
   symbol: string;
   tradeType: string;
-  
+
   // Price data
   ltp: number;
   lastPrice?: number;
@@ -67,18 +67,18 @@ export interface StockAlert {
   prevClose?: number;
   week52High: number | null;
   week52Low: number | null;
-  
+
   // Volume data
   volumeInWindow: number;
   thresholdVolume: number;
   volumePercentile: number | string;
-  
+
   // Market data
   exchange?: string;
   marketCap?: number;
   peRatio?: number;
   avgVolume?: number;
-  
+
   // Alert metadata
   percentChange: number;
   change?: number;
@@ -86,7 +86,7 @@ export interface StockAlert {
   alertTime: number | string | Date;
   exchangeTime: number | string | Date;
   delaySeconds: number;
-  
+
   // URLs
   analyzerUrl: string;
   liveOptionChartUrl: string;
@@ -94,17 +94,17 @@ export interface StockAlert {
   equityChartUrl: string;
   newsUrl: string;
   oiUrl: string;
-  
+
   // System fields
   createdAt?: number;
   redisAlertKey?: string | null;
   redisKeyExpiry?: number;
-  
+
   // UI state
   isBlinking?: boolean;
   isNew?: boolean;
   receivedAt?: number;
-  
+
   // Allow any other properties
   [key: string]: any;
 }
@@ -120,17 +120,17 @@ export interface TickerData {
 @Injectable({
   providedIn: 'root'
 })
-export class StockAlertService {
+export class StockAlertService implements OnDestroy {
   // Static WebSocket properties
   private static socketSubscription: Subscription | null = null;
   private static socket$: WebSocketSubject<any> | null = null;
   private static messageSubject = new ReplaySubject<StockAlert>(50);
   private static tickerSubject = new ReplaySubject<TickerData>(10);
-  
+
   // Instance properties
   public messages$ = StockAlertService.messageSubject.asObservable();
   public tickerData$ = StockAlertService.tickerSubject.asObservable();
-  
+
   // Reconnection properties
   private static reconnectAttempts = 0;
   private static maxReconnectAttempts = 5;
@@ -138,7 +138,7 @@ export class StockAlertService {
   private static connectionInProgress = false;
   private static reconnectTimeout: any = null;
   private static connectionCallbacks: (() => void)[] = [];
-  
+
   // Track active subscriptions
   private static activeSubscriptions = 0;
 
@@ -150,13 +150,13 @@ export class StockAlertService {
   private lastPingTime: number = 0;
   private lastPongTime: number = 0;
   private static instance: StockAlertService | null = null;
-  
+
   constructor(private http: HttpClient) {
     // Return the existing instance if it exists
     if (StockAlertService.instance) {
       return StockAlertService.instance;
     }
-    
+
     // Otherwise, create a new instance
     StockAlertService.instance = this;
   }
@@ -166,7 +166,7 @@ export class StockAlertService {
     if (StockAlertService.instance === this) {
       StockAlertService.instance = null;
     }
-    
+
     // Clean up intervals and timeouts
     if (this.pingInterval) {
       clearInterval(this.pingInterval);
@@ -176,12 +176,12 @@ export class StockAlertService {
       clearTimeout(this.pingTimeout);
       this.pingTimeout = null;
     }
-    
+
     this.disconnect();
   }
 
   // REST API Methods
-  
+
   /**
    * Set an alert for a stock
    * @param alertData The alert data to set
@@ -201,7 +201,7 @@ export class StockAlertService {
 
     const url = `${this.API_BASE_URL}/alerts/free`;
     console.log('Fetching free alerts from:', url);
-    
+
     return this.http.get<PaginatedResponse<StockAlert>>(url, {
       headers: new HttpHeaders({
         'Content-Type': 'application/json',
@@ -267,25 +267,25 @@ export class StockAlertService {
     ).pipe(
       map(response => {
         console.log('Raw paid alerts response:', response);
-        
+
         // Handle case where response is the array directly
         if (Array.isArray(response)) {
           console.log('Response is an array, converting to paginated format');
           return this.createPaginatedResponse(response, page, size);
         }
-        
+
         // Handle case where response is an object with a data property containing the array
         if (response && Array.isArray(response.data)) {
           console.log('Response contains data array, converting to paginated format');
           return this.createPaginatedResponse(response.data, page, size);
         }
-        
+
         // Handle case where response is already in PaginatedResponse format
         if (response && Array.isArray(response.content)) {
           console.log('Response is in PaginatedResponse format');
           return response as PaginatedResponse<StockAlert>;
         }
-        
+
         console.warn('Unexpected response format, returning empty result');
         return this.createPaginatedResponse([], page, size);
       }),
@@ -367,10 +367,10 @@ export class StockAlertService {
             StockAlertService.isConnected = true;
             StockAlertService.connectionInProgress = false;
             StockAlertService.reconnectAttempts = 0;
-            
+
             // Start ping interval
             this.setupPing();
-            
+
             // Notify all pending callbacks
             const callbacks = [...StockAlertService.connectionCallbacks];
             StockAlertService.connectionCallbacks = [];
@@ -402,7 +402,7 @@ export class StockAlertService {
       StockAlertService.socketSubscription = StockAlertService.socket$.subscribe({
         next: (data) => {
           try {
-            this.handleWebSocketMessage(data);
+            this.processMessage(data);
           } catch (err) {
             console.error('Error handling WebSocket message:', err);
           }
@@ -415,13 +415,13 @@ export class StockAlertService {
           console.log('WebSocket connection completed');
           StockAlertService.isConnected = false;
           StockAlertService.connectionInProgress = false;
-          
+
           // Clear ping interval on connection close
           if (this.pingInterval) {
             clearInterval(this.pingInterval);
             this.pingInterval = null;
           }
-          
+
           // Attempt to reconnect if not explicitly disconnected
           if (StockAlertService.activeSubscriptions > 0) {
             console.log('WebSocket connection lost, will attempt to reconnect...');
@@ -434,7 +434,7 @@ export class StockAlertService {
       console.error('Error creating WebSocket connection:', error);
       StockAlertService.connectionInProgress = false;
       this.handleWebSocketError(error);
-      
+
       // Attempt to reconnect on error
       if (StockAlertService.activeSubscriptions > 0) {
         this.attemptReconnect();
@@ -555,11 +555,11 @@ export class StockAlertService {
         try {
           const pingTime = Date.now();
           const pingMsg = { type: 'ping', timestamp: pingTime };
-          
+
           // Send ping using the WebSocketSubject's next method
           StockAlertService.socket$.next(pingMsg);
           console.log(`[${new Date().toISOString()}] Ping sent`);
-          
+
           // Set a timeout to check for pong response
           this.pingTimeout = setTimeout(() => {
             const timeSinceLastPong = Date.now() - this.lastPongTime;
@@ -568,7 +568,7 @@ export class StockAlertService {
               this.handleWebSocketError(new Error(`Ping timeout - no pong received in ${timeSinceLastPong}ms`));
             }
           }, PONG_TIMEOUT);
-          
+
         } catch (err) {
           console.error(`[${new Date().toISOString()}] Error in ping mechanism:`, err);
           this.handleWebSocketError(err);
@@ -581,9 +581,9 @@ export class StockAlertService {
     if (StockAlertService.reconnectAttempts < StockAlertService.maxReconnectAttempts) {
       StockAlertService.reconnectAttempts++;
       const delay = 1000 * Math.pow(1.5, StockAlertService.reconnectAttempts - 1);
-      
+
       console.log(`Attempting to reconnect (${StockAlertService.reconnectAttempts}/${StockAlertService.maxReconnectAttempts}) in ${delay}ms...`);
-      
+
       setTimeout(() => {
         this.connect();
       }, Math.min(delay, 30000)); // Max 30 seconds delay
@@ -610,10 +610,10 @@ export class StockAlertService {
   private handleError = (error: HttpErrorResponse | ErrorEvent | any): Observable<never> => {
     let errorMessage = 'An unexpected error occurred';
     let errorDetails: any = {};
-    
+
     // Log the full error for debugging
     console.error('API Error:', error);
-    
+
     if (error instanceof HttpErrorResponse) {
       // Server-side error
       errorMessage = `Server returned code ${error.status}: ${error.statusText}`;
@@ -622,7 +622,7 @@ export class StockAlertService {
         message: error.message,
         error: error.error
       };
-      
+
       // Handle specific HTTP error codes
       if (error.status === 0) {
         errorMessage = 'Unable to connect to the server. Please check your internet connection.';
@@ -647,7 +647,7 @@ export class StockAlertService {
       errorMessage = error.message || 'An unknown error occurred';
       errorDetails = error;
     }
-    
+
     // Log detailed error information
     console.error('Error details:', {
       message: errorMessage,
@@ -700,18 +700,18 @@ export class StockAlertService {
   private handleWebSocketClose(): void {
     console.log('WebSocket connection closed');
     StockAlertService.isConnected = false;
-    
+
     // Clear ping interval and timeout
     if (this.pingInterval) {
       clearInterval(this.pingInterval);
       this.pingInterval = null;
     }
-    
+
     if (this.pingTimeout) {
       clearTimeout(this.pingTimeout);
       this.pingTimeout = null;
     }
-    
+
     // Attempt to reconnect if we have active subscriptions
     if (StockAlertService.activeSubscriptions > 0) {
       console.log('Attempting to reconnect...');
@@ -721,7 +721,7 @@ export class StockAlertService {
 
   private handleWebSocketError(error: any): void {
     console.error('WebSocket error:', error);
-    
+
     // If we're not already trying to reconnect, attempt to reconnect
     if (!StockAlertService.connectionInProgress && StockAlertService.activeSubscriptions > 0) {
       console.log('Attempting to reconnect after error...');
@@ -736,9 +736,18 @@ export class StockAlertService {
     }
 
     try {
-      const data = (typeof tickerData === 'object' && tickerData !== null && 'data' in tickerData)
+      let data = (typeof tickerData === 'object' && tickerData !== null && 'data' in tickerData)
         ? (tickerData as { data: unknown }).data
         : tickerData;
+
+      // Handle case where data is a JSON string
+      if (typeof data === 'string') {
+        try {
+          data = JSON.parse(data);
+        } catch (e) {
+          console.warn('Failed to parse ticker data string:', e);
+        }
+      }
 
       if (data && typeof data === 'object') {
         const ticker: TickerData = {
@@ -755,7 +764,7 @@ export class StockAlertService {
     }
   }
 
-  private handleWebSocketMessage(data: any): void {
+  public processMessage(data: any): void {
     try {
       // Handle string messages (raw WebSocket messages)
       if (typeof data === 'string') {
@@ -778,7 +787,7 @@ export class StockAlertService {
         this.processParsedMessage(data);
         return;
       }
-      
+
       console.warn('Unhandled WebSocket message format:', data);
     } catch (error) {
       console.error('Error processing WebSocket message:', error, 'Raw data:', data);
@@ -791,7 +800,7 @@ export class StockAlertService {
       console.warn('Received empty or invalid message data');
       return;
     }
-    
+
     // Handle ping/pong messages
     if (parsedData.type === 'ping') {
       const timestamp = 'timestamp' in parsedData ? parsedData.timestamp : undefined;
@@ -812,6 +821,7 @@ export class StockAlertService {
           this.handleAlertMessage(parsedData);
           break;
         case 'ticker':
+        case 'isTicker':
           this.handleTickerMessage(parsedData);
           break;
         default:
@@ -821,8 +831,6 @@ export class StockAlertService {
       console.warn('Received message without type:', parsedData);
     }
   }
-
-  // ... (rest of the code remains the same)
 
   private handleAlertMessage(alertData: unknown): void {
     if (!alertData) {
@@ -841,8 +849,6 @@ export class StockAlertService {
       console.error('Error processing alert message:', error, 'Raw data:', alertData);
     }
   }
-
-  // ... (rest of the code remains the same)
 
   private reconnect(): void {
     if (StockAlertService.reconnectAttempts >= StockAlertService.maxReconnectAttempts) {
@@ -882,8 +888,6 @@ export class StockAlertService {
       this.connect();
     }, delayMs);
   }
-
-  // ... (rest of the code remains the same)
 
   /**
    * Disconnects the WebSocket and cleans up resources
@@ -940,7 +944,7 @@ export class StockAlertService {
     StockAlertService.isConnected = false;
     StockAlertService.connectionInProgress = false;
     StockAlertService.reconnectAttempts = 0;
-    
+
     console.log('WebSocket disconnected and cleaned up');
   }
 }
